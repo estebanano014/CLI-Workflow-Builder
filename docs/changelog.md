@@ -20,6 +20,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y
 - Empaquetado Windows con `electron-builder` (instalador NSIS) e intérprete Python embebido (no requiere Python en destino).
 - Logo/icono de la aplicación (PNG + ICO) generado por `scripts/gen-icon.py`.
 
+### Corregido
+- CORS en la API local: cabeceras `Access-Control-Allow-*` y manejo de preflight `OPTIONS` para que la UI (origen distinto) pueda consumir la API en desarrollo.
+
 ## [0.0.1] - 2026-11-07
 
 ### Añadido

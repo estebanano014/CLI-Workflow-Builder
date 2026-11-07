@@ -54,9 +54,16 @@ def make_handler(store, token):
                 return False
             return True
 
+        def _cors(self):
+            # La UI local corre en otro origen (localhost:5173 en dev, file:// en producción).
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+
         def _json(self, obj, status=200):
             body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
             self.send_response(status)
+            self._cors()
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
@@ -81,6 +88,13 @@ def make_handler(store, token):
             return None, None
 
         # ---------- despacho ----------
+        def do_OPTIONS(self):
+            # Preflight CORS: no exige token (el navegador no lo envía en OPTIONS).
+            self.send_response(200)
+            self._cors()
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
         def do_GET(self):
             if not self._autenticado():
                 return
@@ -229,6 +243,7 @@ def make_handler(store, token):
             del lista[idx]
             store.save()
             self.send_response(204)
+            self._cors()
             self.send_header("Content-Length", "0")
             self.end_headers()
 
