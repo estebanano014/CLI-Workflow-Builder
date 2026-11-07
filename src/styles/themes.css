@@ -1,0 +1,283 @@
+/* =========================================================================
+   Sistema de temas — CLI Workflow Builder
+   9 temas independientes × 2 modos (claro/oscuro) = 18 paletas.
+   Se aplican mediante: <html data-theme="<id>" data-mode="claro|oscuro">
+   ========================================================================= */
+
+:root {
+  color-scheme: light dark;
+  /* Neutro claro (fallback) */
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-text: #1f2328;
+  --color-text-muted: #6b7280;
+  --color-primary: #2563eb;
+  --color-border: #d1d5db;
+  --color-success: #16a34a;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #0891b2;
+
+  --border-width: 1px;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* ============================ 1. NEUTRO ============================ */
+
+html[data-theme="neutro"][data-mode="claro"] {
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-text: #1f2328;
+  --color-text-muted: #6b7280;
+  --color-primary: #2563eb;
+  --color-border: #d1d5db;
+  --color-success: #16a34a;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #0891b2;
+}
+
+html[data-theme="neutro"][data-mode="oscuro"] {
+  --color-bg: #111827;
+  --color-surface: #1f2937;
+  --color-text: #e5e7eb;
+  --color-text-muted: #9ca3af;
+  --color-primary: #3b82f6;
+  --color-border: #374151;
+  --color-success: #22c55e;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  --color-info: #06b6d4;
+}
+
+/* ============================ 2. CÁLIDO ============================ */
+
+html[data-theme="calido"][data-mode="claro"] {
+  --color-bg: #faf5ef;
+  --color-surface: #fffdf9;
+  --color-text: #2b2118;
+  --color-text-muted: #7d6b5c;
+  --color-primary: #ea580c;
+  --color-border: #e0d3c5;
+  --color-success: #2f9e44;
+  --color-error: #b91c1c;
+  --color-warning: #b45309;
+  --color-info: #0e7490;
+}
+
+html[data-theme="calido"][data-mode="oscuro"] {
+  --color-bg: #1c1512;
+  --color-surface: #2a2019;
+  --color-text: #f0e6db;
+  --color-text-muted: #a08d7b;
+  --color-primary: #f97316;
+  --color-border: #463a2f;
+  --color-success: #34d399;
+  --color-error: #f87171;
+  --color-warning: #fbbf24;
+  --color-info: #22d3ee;
+}
+
+/* ============================ 3. FRÍO ============================ */
+
+html[data-theme="frio"][data-mode="claro"] {
+  --color-bg: #eef5f9;
+  --color-surface: #ffffff;
+  --color-text: #122a33;
+  --color-text-muted: #5b7782;
+  --color-primary: #0ea5e9;
+  --color-border: #c6dbe4;
+  --color-success: #059669;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #0891b2;
+}
+
+html[data-theme="frio"][data-mode="oscuro"] {
+  --color-bg: #0c1a21;
+  --color-surface: #12272f;
+  --color-text: #d6e6ec;
+  --color-text-muted: #7f9aa6;
+  --color-primary: #22d3ee;
+  --color-border: #24434d;
+  --color-success: #34d399;
+  --color-error: #f87171;
+  --color-warning: #fbbf24;
+  --color-info: #67e8f9;
+}
+
+/* ============================ 4. OSCURO PROFUNDO ============================ */
+
+html[data-theme="oscuro-profundo"][data-mode="claro"] {
+  --color-bg: #ecebf2;
+  --color-surface: #ffffff;
+  --color-text: #1a1a2e;
+  --color-text-muted: #5d5d7a;
+  --color-primary: #6d28d9;
+  --color-border: #d3d2e0;
+  --color-success: #15803d;
+  --color-error: #b91c1c;
+  --color-warning: #b45309;
+  --color-info: #0369a1;
+}
+
+html[data-theme="oscuro-profundo"][data-mode="oscuro"] {
+  --color-bg: #0b0b12;
+  --color-surface: #16161f;
+  --color-text: #eceaf5;
+  --color-text-muted: #8f8ca3;
+  --color-primary: #8b5cf6;
+  --color-border: #2c2c3d;
+  --color-success: #4ade80;
+  --color-error: #f87171;
+  --color-warning: #fbbf24;
+  --color-info: #7dd3fc;
+}
+
+/* ============================ 5. CLARO SUAVE ============================ */
+
+html[data-theme="claro-suave"][data-mode="claro"] {
+  --color-bg: #f7faf8;
+  --color-surface: #ffffff;
+  --color-text: #22302a;
+  --color-text-muted: #6f7d76;
+  --color-primary: #16a34a;
+  --color-border: #dde8e1;
+  --color-success: #15803d;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #0e7490;
+}
+
+html[data-theme="claro-suave"][data-mode="oscuro"] {
+  --color-bg: #101916;
+  --color-surface: #1a2621;
+  --color-text: #e2efe9;
+  --color-text-muted: #8aa397;
+  --color-primary: #34d399;
+  --color-border: #2f4038;
+  --color-success: #4ade80;
+  --color-error: #f87171;
+  --color-warning: #fbbf24;
+  --color-info: #38bdf8;
+}
+
+/* ============================ 6. PROTANOPIA ============================
+   Evita rojo-verde. Par seguro azul-naranja; diferencia por luminancia. */
+
+html[data-theme="protanopia"][data-mode="claro"] {
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-text: #000000;
+  --color-text-muted: #3d3d3d;
+  --color-primary: #1a5fd0;
+  --color-border: #595959;
+  --color-success: #1a5fd0;
+  --color-error: #e8590c;
+  --color-warning: #d97706;
+  --color-info: #0b6ea8;
+}
+
+html[data-theme="protanopia"][data-mode="oscuro"] {
+  --color-bg: #0d0d0d;
+  --color-surface: #1a1a1a;
+  --color-text: #ffffff;
+  --color-text-muted: #b3b3b3;
+  --color-primary: #66a3ff;
+  --color-border: #4d4d4d;
+  --color-success: #66a3ff;
+  --color-error: #ff8a3d;
+  --color-warning: #ffb347;
+  --color-info: #7cc4ff;
+}
+
+/* ============================ 7. DEUTERANOPIA ============================
+   Deficiencia más común. Igual que protanopia: azul-naranja como par seguro. */
+
+html[data-theme="deuteranopia"][data-mode="claro"] {
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-text: #000000;
+  --color-text-muted: #3d3d3d;
+  --color-primary: #1a5fd0;
+  --color-border: #595959;
+  --color-success: #1a5fd0;
+  --color-error: #e8590c;
+  --color-warning: #d97706;
+  --color-info: #0b6ea8;
+}
+
+html[data-theme="deuteranopia"][data-mode="oscuro"] {
+  --color-bg: #0d0d0d;
+  --color-surface: #1a1a1a;
+  --color-text: #ffffff;
+  --color-text-muted: #b3b3b3;
+  --color-primary: #66a3ff;
+  --color-border: #4d4d4d;
+  --color-success: #66a3ff;
+  --color-error: #ff8a3d;
+  --color-warning: #ffb347;
+  --color-info: #7cc4ff;
+}
+
+/* ============================ 8. TRITANOPIA ============================
+   Evita azul-amarillo como distinción crítica. Rojo-naranja vs azul-verde. */
+
+html[data-theme="tritanopia"][data-mode="claro"] {
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-text: #000000;
+  --color-text-muted: #3d3d3d;
+  --color-primary: #c2410c;
+  --color-border: #595959;
+  --color-success: #00897b;
+  --color-error: #d84315;
+  --color-warning: #bf360c;
+  --color-info: #00695c;
+}
+
+html[data-theme="tritanopia"][data-mode="oscuro"] {
+  --color-bg: #0d0d0d;
+  --color-surface: #1a1a1a;
+  --color-text: #ffffff;
+  --color-text-muted: #b3b3b3;
+  --color-primary: #ff8a65;
+  --color-border: #4d4d4d;
+  --color-success: #4db6ac;
+  --color-error: #ff7043;
+  --color-warning: #ffab91;
+  --color-info: #80cbc4;
+}
+
+/* ============================ 9. ALTO CONTRASTE ============================
+   Blanco puro / negro puro, bordes gruesos. Legible en escala de grises. */
+
+html[data-theme="alto-contraste"][data-mode="claro"] {
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-text: #000000;
+  --color-text-muted: #000000;
+  --color-primary: #0000ee;
+  --color-border: #000000;
+  --color-success: #006400;
+  --color-error: #8b0000;
+  --color-warning: #8b4500;
+  --color-info: #00008b;
+  --border-width: 3px;
+}
+
+html[data-theme="alto-contraste"][data-mode="oscuro"] {
+  --color-bg: #000000;
+  --color-surface: #000000;
+  --color-text: #ffffff;
+  --color-text-muted: #ffffff;
+  --color-primary: #ffff00;
+  --color-border: #ffffff;
+  --color-success: #00ff00;
+  --color-error: #ff6060;
+  --color-warning: #ffb300;
+  --color-info: #7cc4ff;
+  --border-width: 3px;
+}

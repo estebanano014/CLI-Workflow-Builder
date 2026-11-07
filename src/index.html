@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CLI Workflow Builder</title>
+    <script>
+      // Aplicar el tema antes de que cargue React (evita flash / FOUC).
+      (function () {
+        try {
+          var t = localStorage.getItem('cliwf.tema') || 'neutro';
+          var m = localStorage.getItem('cliwf.modo') || 'claro';
+          document.documentElement.setAttribute('data-theme', t);
+          document.documentElement.setAttribute('data-mode', m);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

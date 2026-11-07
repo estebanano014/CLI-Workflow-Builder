@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+out/
+build/
+vendor/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Datos locales (no versionar)
+data/
+
+# Editor / SO
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log

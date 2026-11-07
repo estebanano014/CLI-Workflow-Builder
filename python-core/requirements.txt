@@ -1,0 +1,2 @@
+# El núcleo Python usa únicamente la biblioteca estándar (sin dependencias externas).
+# Este archivo existe para documentar esa decisión y permitir entornos empaquetados.

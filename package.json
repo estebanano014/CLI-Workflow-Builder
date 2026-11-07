@@ -1,0 +1,33 @@
+{
+  "name": "cli-workflow-builder",
+  "version": "0.1.0",
+  "description": "Gestor visual de flujos de trabajo (offline para Windows): recuerda, ordena y practica comandos de consola y descompone problemas lógicos.",
+  "author": "CLI Workflow Builder",
+  "license": "MIT",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test:python": "py -m unittest discover -s python-core/tests -t python-core -v",
+    "fetch:python": "powershell -ExecutionPolicy Bypass -File scripts/fetch-python.ps1",
+    "dist:dir": "electron-vite build && electron-builder --dir",
+    "dist:win": "electron-vite build && electron-builder --win"
+  },
+  "devDependencies": {
+    "@fortawesome/fontawesome-free": "^6.5.2",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.3.0",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^2.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sweetalert2": "^11.11.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.3.5"
+  }
+}
