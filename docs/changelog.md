@@ -18,6 +18,7 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y
 - Tests Python (persistencia y API) con `unittest`.
 - Documentación: `architecture.md` y `api-contract.md`.
 - Empaquetado Windows con `electron-builder` (instalador NSIS) e intérprete Python embebido (no requiere Python en destino).
+- Logo/icono de la aplicación (PNG + ICO) generado por `scripts/gen-icon.py`.
 
 ## [0.0.1] - 2026-11-07
 

@@ -4,8 +4,8 @@ node_modules/
 # Build
 dist/
 out/
-build/
 vendor/
+build/icon-*.png
 
 # Python
 __pycache__/

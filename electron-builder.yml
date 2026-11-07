@@ -13,6 +13,7 @@ extraResources:
   - from: vendor/python
     to: python
 win:
+  icon: build/icon.ico
   target:
     - nsis
 nsis:

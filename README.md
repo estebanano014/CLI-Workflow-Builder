@@ -49,6 +49,8 @@ npm run dist:dir       # build desempaquetado (dist/win-unpacked) para depurar
 
 El instalador incluye el intérprete Python embebido, por lo que **no requiere Python instalado** en la máquina destino (offline por diseño).
 
+El icono de la app está en `build/icon.ico`; se regenera con `py scripts/gen-icon.py`.
+
 ## Estructura de carpetas
 
 ```
