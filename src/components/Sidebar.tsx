@@ -20,6 +20,13 @@ export function Sidebar() {
         </button>
         <button
           type="button"
+          className={`nav-link ${vista.nombre === 'biblioteca' ? 'active' : ''}`}
+          onClick={() => navegar({ nombre: 'biblioteca' })}
+        >
+          <i className="fa-solid fa-book" aria-hidden="true" /> Biblioteca
+        </button>
+        <button
+          type="button"
           className={`nav-link ${vista.nombre === 'ajustes' ? 'active' : ''}`}
           onClick={() => navegar({ nombre: 'ajustes' })}
         >

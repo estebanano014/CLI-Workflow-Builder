@@ -71,3 +71,22 @@ Los temas 6–9 son **temas independientes** seleccionables en el mismo selector
 ### Regla de oro (daltonismo)
 
 Si un color comunica un estado (éxito / error / peligro), **debe ir siempre acompañado de un icono o texto**. La redundancia (color + icono/texto) es obligatoria.
+
+## Design system (tokens)
+
+Definidos en `:root` (en `src/styles/themes.css`) y reutilizados en `src/styles/global.css`.
+
+- **Tipografía:** `Manrope` (variable, self-hosted vía `@fontsource-variable/manrope`, offline). Fuente mono para comandos: `Cascadia Code / Consolas`.
+- **Escala tipográfica:** `12 / 13 / 15 / 16 / 18 / 22 / 28px` (`--text-xs` … `--text-2xl`).
+- **Espaciado:** sistema de 8px (`--space-1`=4 … `--space-10`=40).
+- **Radios:** `6px` (inputs), `10px` (tarjetas), `14px` (modales), `999px` (pills).
+- **Sombras suaves:** `--shadow-xs/sm/shadow/lg` (difusas, p. ej. `0 4px 20px rgba(0,0,0,.06)`).
+- **Transiciones:** `--transition-fast` (150ms) y `--transition` (200ms); se desactivan con `prefers-reduced-motion: reduce`.
+- **Derivados de color** con `color-mix()`: `--border-subtle` (borde hairline), `--primary-soft` (fondo de elemento activo) y `--focus-ring` (anillo de foco). Resuelven el color del tema activo sin duplicar paletas.
+
+### Estética
+
+- Enfoque **minimalista "aire y sombra"**: tarjetas con borde hairline + sombra difusa, mucho espacio en blanco.
+- Header sticky con `backdrop-filter` sutil; sidebar y footer con bordes hairline.
+- Foco visible unificado (`:focus-visible` con anillo del color primario).
+- Buscador protagonista (input tipo pill con icono) en la sección Biblioteca.

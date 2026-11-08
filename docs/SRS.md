@@ -2,11 +2,19 @@
 
 ## GESTOR VISUAL DE FLUJOS DE TRABAJO (CLI WORKFLOW BUILDER)
 
-- Versión: 1.0 (MVP)
-- Estándar: IEEE 830
+- Versión: 1.1
+- Estándar: IEEE 830-1998
 - Estado: Línea base para desarrollo
 - SO objetivo: Windows 10/11
 - Dependencia de Internet: Ninguna (offline por diseño)
+- Fecha: 2026-11-07
+
+## ÍNDICE
+
+- 1. Introducción
+- 2. Descripción general
+- 3. Requisitos específicos (RF y RNF)
+- 4. Apéndices
 
 ## 1. INTRODUCCIÓN
 
@@ -16,7 +24,7 @@ Definir los requisitos funcionales y no funcionales de una aplicación de escrit
 
 ### 1.2 Alcance
 
-Dentro del MVP: Dashboard, Constructor de Rutas, Modo Ejecución paso a paso, Módulo de Recetas de Lógica, Ajustes, Import/Export, API local del núcleo, persistencia JSON local.
+Dentro del MVP: Dashboard, Biblioteca de comandos, Constructor de Rutas, Modo Ejecución paso a paso, Módulo de Recetas de Lógica, Ajustes, Import/Export, API local del núcleo, persistencia JSON local.
 
 Fuera del MVP: ejecución real de comandos en terminal, sincronización en nube, multiusuario, historial de ejecuciones, práctica guiada formal, drag & drop, internacionalización, ejecución en sistemas operativos distintos de Windows.
 
@@ -34,6 +42,7 @@ Fuera del MVP: ejecución real de comandos en terminal, sincronización en nube,
 
 - IEEE Std 830-1998.
 - Decisiones de diseño registradas en el Apéndice A.
+- README.md del repositorio (guía de uso e instalación).
 
 ### 1.5 Resumen
 
@@ -53,6 +62,7 @@ Aplicación de escritorio Electron + React + TypeScript con un núcleo Python qu
 4. Módulo de Recetas de Lógica con checklist volátil.
 5. Ajustes (variables globales, sistema operativo preferido, import/export).
 6. API local documentada para comunicación con la interfaz y herramientas locales.
+7. Biblioteca de comandos: catálogo de comandos comunes organizado por sistema operativo, con búsqueda por acción y filtros.
 
 ### 2.3 Usuarios
 
@@ -132,6 +142,15 @@ Prioridades: M = Must (imprescindible en MVP), S = Should, C = Could.
 - **RF-061.** Escritura atómica (tmp más rename) y backup antes de cada guardado exitoso. Prioridad: M. Criterio de aceptación: simulación de cierre a mitad de guardado no corrompe el original.
 - **RF-062.** Si el JSON está corrupto, no sobrescribir; avisar y ofrecer restaurar backup. Prioridad: M. Criterio de aceptación: escenario probado con archivo corrupto.
 
+#### 3.1.8 Biblioteca de comandos
+
+- **RF-063.** Catálogo de comandos: la Biblioteca ofrece los comandos de consola más comunes organizados por sistema operativo (Windows, macOS y Linux), con variantes CMD y PowerShell para Windows cuando difieren. Prioridad: M. Criterio de aceptación: incluye, como mínimo, las categorías Git, navegación de archivos, gestión de archivos, permisos y usuarios, red, procesos, instalación de paquetes, búsqueda, variables de entorno y redirecciones/pipes.
+- **RF-064.** Comandos idénticos en todos los sistemas se marcan con `sameInAllOS: true` y no se duplica la información por SO. Prioridad: M. Criterio de aceptación: cada comando idéntico se define una sola vez.
+- **RF-065.** Búsqueda por acción: el buscador filtra por acción, descripción, comando y etiquetas. Prioridad: M. Criterio de aceptación: la búsqueda "subir cambios" devuelve el comando de push; resultados en menos de 300 ms con el catálogo completo.
+- **RF-066.** Filtro por sistema operativo: Todos / Windows / macOS / Linux. Prioridad: M. Criterio de aceptación: al filtrar por un SO solo se muestran los comandos aplicables a ese sistema; en Windows se distinguen CMD y PowerShell.
+- **RF-067.** Filtro por categoría. Prioridad: S. Criterio de aceptación: combinable con la búsqueda y con el filtro de SO.
+- **RF-068.** Copiar comando al portapapeles con feedback en el propio botón. Prioridad: M. Criterio de aceptación: feedback visual aproximado de 1.5 s; fallback si el portapapeles falla.
+
 ### 3.2 Requisitos No Funcionales (RNF)
 
 - **RNF-001.** Offline por diseño: ninguna funcionalidad depende de Internet ni envía telemetría. Prioridad: M. Criterio de aceptación: prueba con red desconectada; todas las funciones operan.
@@ -150,6 +169,8 @@ Prioridades: M = Must (imprescindible en MVP), S = Should, C = Could.
 - **RNF-014.** Latencia de API menor a 100 ms por endpoint con 200 elementos. Prioridad: M. Criterio de aceptación: medición con archivo de prueba.
 - **RNF-015.** Compatibilidad: solo Windows 10/11 verificado en el MVP; otros sistemas operativos no soportados. Prioridad: M. Criterio de aceptación: declarado en README y SRS.
 - **RNF-016.** Internacionalización: fuera del MVP; interfaz en español. Prioridad: C. Criterio de aceptación: declarado.
+- **RNF-017.** Rendimiento de la Biblioteca: búsqueda y filtrado menores a 300 ms con el catálogo completo. Prioridad: M. Criterio de aceptación: medición documentada.
+- **RNF-018.** Filtros por SO sin depender solo del color: cada variante muestra su etiqueta (CMD/PowerShell/macOS/Linux). Prioridad: M. Criterio de aceptación: verificación visual en los temas de daltonismo.
 
 ## 4. APÉNDICES
 
@@ -164,6 +185,7 @@ Prioridades: M = Must (imprescindible en MVP), S = Should, C = Could.
 - Atajos de teclado: afecta RNF-011.
 - Sin drag & drop en MVP: afecta RF-011.
 - Sin ejecución real de comandos: ver alcance 1.2.
+- Biblioteca de comandos (catálogo multi-SO, sameInAllOS, búsqueda por acción, filtros por SO/categoría): afecta RF-063 a RF-068, RNF-017, RNF-018.
 
 ### Apéndice B. Supuestos y dependencias externas
 

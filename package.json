@@ -29,5 +29,8 @@
     "sweetalert2": "^11.11.0",
     "typescript": "^5.5.4",
     "vite": "^5.3.5"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0"
   }
 }

@@ -1,6 +1,7 @@
 import { AppProvider, useApp } from '@/context/AppContext'
 import { Sidebar } from '@/components/Sidebar'
 import Dashboard from '@/pages/Dashboard'
+import Biblioteca from '@/pages/Biblioteca'
 import RutaEditor from '@/pages/RutaEditor'
 import Ejecucion from '@/pages/Ejecucion'
 import RecetaEditor from '@/pages/RecetaEditor'
@@ -12,6 +13,8 @@ function tituloDe(vista: Vista): string {
   switch (vista.nombre) {
     case 'dashboard':
       return 'Dashboard'
+    case 'biblioteca':
+      return 'Biblioteca de comandos'
     case 'ruta-editor':
       return vista.id ? 'Editar ruta' : 'Nueva ruta'
     case 'ejecucion':
@@ -32,6 +35,9 @@ function Shell() {
   switch (vista.nombre) {
     case 'dashboard':
       contenido = <Dashboard />
+      break
+    case 'biblioteca':
+      contenido = <Biblioteca />
       break
     case 'ruta-editor':
       contenido = <RutaEditor rutaId={vista.id} />
@@ -54,9 +60,10 @@ function Shell() {
     <div className="app-shell">
       <Sidebar />
       <header className="app-header">
-        <h1 style={{ margin: 0, fontSize: 18, flex: 1 }}>{tituloDe(vista)}</h1>
+        <h1 style={{ flex: 1 }}>{tituloDe(vista)}</h1>
       </header>
       <main className="app-main">{contenido}</main>
+      <footer className="app-footer">CLI Workflow Builder · funciona sin conexión</footer>
     </div>
   )
 }

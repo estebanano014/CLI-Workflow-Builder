@@ -19,6 +19,9 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y
 - Documentación: `architecture.md` y `api-contract.md`.
 - Empaquetado Windows con `electron-builder` (instalador NSIS) e intérprete Python embebido (no requiere Python en destino).
 - Logo/icono de la aplicación (PNG + ICO) generado por `scripts/gen-icon.py`.
+- Sección "Biblioteca": catálogo de comandos por sistema operativo (Windows/macOS/Linux, CMD/PowerShell) con buscador por acción y filtros por SO y categoría.
+- Rediseño visual: fuente Manrope self-hosted, design system con tokens (espaciado 8px, radios, sombras suaves, transiciones), estética "aire y sombra" y footer.
+- `docs/SRS.md` actualizado (v1.1): sección 3.1.8 "Biblioteca de comandos" (RF-063 a RF-068), RNF-017/RNF-018, alcance y funciones actualizadas, portada con índice.
 
 ### Corregido
 - CORS en la API local: cabeceras `Access-Control-Allow-*` y manejo de preflight `OPTIONS` para que la UI (origen distinto) pueda consumir la API en desarrollo.

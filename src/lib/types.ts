@@ -81,6 +81,7 @@ export interface StoreData {
 
 export type Vista =
   | { nombre: 'dashboard' }
+  | { nombre: 'biblioteca' }
   | { nombre: 'ruta-editor'; id?: string }
   | { nombre: 'ejecucion'; id: string }
   | { nombre: 'receta-editor'; id?: string }
