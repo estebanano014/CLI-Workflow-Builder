@@ -23,6 +23,25 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-head);
+}
+
+/* VT323 (tema Terminal) solo tiene peso 400: evita el faux-bold */
+html[data-theme='terminal'] h1,
+html[data-theme='terminal'] h2,
+html[data-theme='terminal'] h3,
+html[data-theme='terminal'] h4,
+html[data-theme='terminal'] h5,
+html[data-theme='terminal'] h6 {
+  font-weight: 400;
+}
+
 /* ---------- Focus y accesibilidad ---------- */
 
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {

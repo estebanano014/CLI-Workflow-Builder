@@ -1,0 +1,40 @@
+{
+  "app": "catalogo-estilos",
+  "slug": "terminal-cli",
+  "version": "1.0",
+  "exportedAt": "2026-11-12T15:54:49.261Z",
+  "config": {
+    "theme": 2,
+    "mode": "dark",
+    "geo": 3,
+    "bg": 3,
+    "anim": 5,
+    "lang": "es",
+    "custom": {},
+    "a11y": {
+      "reduceMotion": false,
+      "largeText": false,
+      "lineHeight": 1.6,
+      "letterSpacing": 0,
+      "underline": false,
+      "focusRing": false,
+      "colorBlind": "none",
+      "fontScale": 100
+    },
+    "ai": {
+      "model": "local-m",
+      "temperature": 0.7,
+      "maxTokens": 512,
+      "prompt": "",
+      "streaming": true
+    },
+    "session": {
+      "name": "Invitado",
+      "email": "guest@local",
+      "role": "guest",
+      "since": 1794498865456
+    },
+    "chat": [],
+    "blocks": []
+  }
+}

@@ -45,7 +45,11 @@ Casos de uso obligatorios:
   - `cambiarModo()`: alterna claro/oscuro.
 - Persistencia en `localStorage`.
 - Se aplica el tema **antes** de que cargue React (script inline en `index.html`) para evitar flash (FOUC).
-- **Modo por defecto: oscuro.** El tema `Neutro` en modo oscuro replica la paleta de la página de lanzamiento (`landing/index.html`): `#111827` fondo, `#1f2937` superficie, `#3b82f6` acento, texto `#e5e7eb`/`#9ca3af` y borde `#374151`. Así la app abre con la misma estética que la landing.
+- **Tema y modo por defecto: `Terminal` + oscuro.** La app abre con el tema
+  `Terminal` en modo oscuro, que replica la estética de consola del catálogo
+  "Terminal / CLI" (variante "Cítrico"): fondo `#121b20`, superficie `#1d2c35`,
+  acento cian `#7cf1ff`, verde `#4fff00`, ámbar `#ffb000` y tipografía
+  monoespaciada.
 
 ### Variables por tema
 
@@ -53,21 +57,26 @@ Cada tema define, para **claro** y **oscuro**:
 
 `--color-bg`, `--color-surface`, `--color-text`, `--color-text-muted`, `--color-primary`, `--color-border`, `--color-success`, `--color-error`, `--color-warning`, `--color-info`.
 
-### Los 9 temas
+### Los 10 temas
 
 | # | Nombre | Descripción | Nota de accesibilidad |
 |---|--------|-------------|------------------------|
-| 1 | Neutro | Grises + acento azul | — |
-| 2 | Cálido | Tierra + naranja | — |
-| 3 | Frío | Azul/verde + cian | — |
-| 4 | Oscuro profundo | Casi negro + violeta | — |
-| 5 | Claro suave | Blanco roto + verde | — |
-| 6 | Protanopia | Azul-naranja para estados críticos | Diferencia por luminancia, no por tono |
-| 7 | Deuteranopia | Azul-naranja (par seguro) | Deficiencia más común |
-| 8 | Tritanopia | Rojo-naranja vs azul-verde | Contraste de luminancia |
-| 9 | Alto contraste | Blanco puro / negro puro, bordes gruesos | Todo legible en escala de grises |
+| 1 | Terminal | Consola cian/verde + monoespaciado | — |
+| 2 | Neutro | Grises + acento azul | — |
+| 3 | Cálido | Tierra + naranja | — |
+| 4 | Frío | Azul/verde + cian | — |
+| 5 | Oscuro profundo | Casi negro + violeta | — |
+| 6 | Claro suave | Blanco roto + verde | — |
+| 7 | Protanopia | Azul-naranja para estados críticos | Diferencia por luminancia, no por tono |
+| 8 | Deuteranopia | Azul-naranja (par seguro) | Deficiencia más común |
+| 9 | Tritanopia | Rojo-naranja vs azul-verde | Contraste de luminancia |
+| 10 | Alto contraste | Blanco puro / negro puro, bordes gruesos | Todo legible en escala de grises |
 
-Los temas 6–9 son **temas independientes** seleccionables en el mismo selector (no son filtros que se superponen a los temas base). Se implementan con el mismo mecanismo de CSS variables.
+Los temas 7–10 son **temas independientes** seleccionables en el mismo selector (no son filtros que se superponen a los temas base). Se implementan con el mismo mecanismo de CSS variables.
+
+El tema **Terminal** es especial: además de la paleta, redefine la tipografía
+(`VT323` para títulos y `JetBrains Mono` para texto/comandos, self-hosted desde
+`src/styles/fonts/`) y usa un glow sutil en las sombras.
 
 ### Regla de oro (daltonismo)
 
@@ -77,7 +86,7 @@ Si un color comunica un estado (éxito / error / peligro), **debe ir siempre aco
 
 Definidos en `:root` (en `src/styles/themes.css`) y reutilizados en `src/styles/global.css`.
 
-- **Tipografía:** `Manrope` (variable, self-hosted vía `@fontsource-variable/manrope`, offline). Fuente mono para comandos: `Cascadia Code / Consolas`.
+- **Tipografía:** `Manrope` (variable, self-hosted vía `@fontsource-variable/manrope`, offline). Fuente mono para comandos: `Cascadia Code / Consolas`. El tema **Terminal** añade `VT323` (títulos) y `JetBrains Mono` (texto y comandos), self-hosted en `src/styles/fonts/` (sin CDN).
 - **Escala tipográfica:** `12 / 13 / 15 / 16 / 18 / 22 / 28px` (`--text-xs` … `--text-2xl`).
 - **Espaciado:** sistema de 8px (`--space-1`=4 … `--space-10`=40).
 - **Radios:** `6px` (inputs), `10px` (tarjetas), `14px` (modales), `999px` (pills).

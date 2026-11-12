@@ -45,7 +45,7 @@ Cada comando tiene un botón **Copiar**. En el **Modo Ejecución** de una Ruta, 
 - **Rutas:** secuencias de comandos con variantes por SO, variables `{{x}}` y vista previa.
 - **Modo Ejecución:** avanza paso a paso con barra de progreso y atajos de teclado (`→`, `←`, `C`, `R`, `Esc`).
 - **Recetas:** descompón problemas en pasos con checklist.
-- **Temas:** 9 temas (5 base × claro/oscuro + 4 de daltonismo).
+- **Temas:** 10 temas (6 base × claro/oscuro + 4 de daltonismo), con el tema **Terminal** (monoespaciado, acento cian/verde) por defecto.
 - **Importar / Exportar** tu archivo de datos.
 - **Cuenta local:** registro y login offline (una sola cuenta por equipo).
 

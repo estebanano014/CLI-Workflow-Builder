@@ -8,6 +8,7 @@ export interface TemaInfo {
 }
 
 export const TEMAS: TemaInfo[] = [
+  { id: 'terminal', nombre: 'Terminal', descripcion: 'Consola cian/verde + monoespaciado', daltonismo: false },
   { id: 'neutro', nombre: 'Neutro', descripcion: 'Grises + acento azul', daltonismo: false },
   { id: 'calido', nombre: 'Cálido', descripcion: 'Tierra + naranja', daltonismo: false },
   { id: 'frio', nombre: 'Frío', descripcion: 'Azul/verde + cian', daltonismo: false },
@@ -19,7 +20,7 @@ export const TEMAS: TemaInfo[] = [
   { id: 'alto-contraste', nombre: 'Alto contraste', descripcion: 'Blanco/negro puro, bordes gruesos', daltonismo: true }
 ]
 
-export const TEMA_DEFAULT = 'neutro'
+export const TEMA_DEFAULT = 'terminal'
 export const MODO_DEFAULT: Modo = 'oscuro'
 
 export const LS_TEMA = 'cliwf.tema'

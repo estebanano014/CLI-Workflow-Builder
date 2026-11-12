@@ -8,7 +8,7 @@
       // Aplicar el tema antes de que cargue React (evita flash / FOUC).
       (function () {
         try {
-          var t = localStorage.getItem('cliwf.tema') || 'neutro';
+          var t = localStorage.getItem('cliwf.tema') || 'terminal';
           var m = localStorage.getItem('cliwf.modo') || 'oscuro';
           document.documentElement.setAttribute('data-theme', t);
           document.documentElement.setAttribute('data-mode', m);

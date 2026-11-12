@@ -4,6 +4,16 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
+## [0.2.2] - 2026-11-12
+
+### Añadido
+- Tema **Terminal** como tema por defecto: estética de consola del catálogo "Terminal / CLI" (variante "Cítrico"), con paleta cian/verde (acento `#7cf1ff`, verde `#4fff00`, ámbar `#ffb000`) y tipografía monoespaciada `VT323` (títulos) + `JetBrains Mono` (texto y comandos), self-hosted sin CDN en `src/styles/fonts/`.
+- Glow sutil en las sombras del tema Terminal.
+
+### Cambiado
+- Tema por defecto `neutro` → `terminal` (sigue en modo oscuro).
+- Documentación de temas actualizada de 9 a 10 (6 base + 4 de daltonismo).
+
 ## [0.2.1] - 2026-11-12
 
 ### Añadido

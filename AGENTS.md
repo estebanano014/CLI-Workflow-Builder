@@ -49,7 +49,7 @@ El repositorio debe quedar documentado de forma continua, como un portafolio té
 - React Context (`ThemeContext`) que expone: `temaActual`, `cambiarTema(nombre)`, `modo` (claro/oscuro), `cambiarModo()`.
 - Persistir en `localStorage`.
 - Aplicar el tema **antes** de cargar React (script inline en `index.html`).
-- 5 temas base × claro/oscuro + 4 temas de daltonismo = **9 temas independientes** en el mismo selector.
+- 6 temas base × claro/oscuro + 4 temas de daltonismo = **10 temas independientes** en el mismo selector.
 - **Regla de oro (daltonismo):** si un color comunica un estado (éxito/error/peligro), acompáñalo siempre con un icono o texto.
 
 ## Estructura de carpetas esperada

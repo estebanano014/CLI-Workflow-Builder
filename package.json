@@ -1,6 +1,6 @@
 {
   "name": "cli-workflow-builder",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Gestor visual de flujos de trabajo (offline para Windows): recuerda, ordena y practica comandos de consola y descompone problemas lógicos.",
   "author": "CLI Workflow Builder",
   "license": "MIT",

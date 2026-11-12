@@ -35,6 +35,7 @@
   /* Tipografía */
   --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'Cascadia Code', 'Consolas', 'SF Mono', ui-monospace, monospace;
+  --font-head: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --text-xs: 12px;
   --text-sm: 13px;
   --text-base: 15px;
@@ -203,6 +204,45 @@ html[data-theme="claro-suave"][data-mode="oscuro"] {
   --color-error: #f87171;
   --color-warning: #fbbf24;
   --color-info: #38bdf8;
+}
+
+/* ============================ TERMINAL ============================
+   Estética de consola del catálogo "Terminal / CLI" (variante "Cítrico"):
+   monoespaciado VT323 + JetBrains Mono, acento cian/verde y glow sutil. */
+
+html[data-theme="terminal"][data-mode="claro"] {
+  --color-bg: #f4f9f6;
+  --color-surface: #ffffff;
+  --color-text: #14161b;
+  --color-text-muted: #59606c;
+  --color-primary: #0e7490;
+  --color-border: #c9dfe8;
+  --color-success: #2f9e44;
+  --color-error: #dc2626;
+  --color-warning: #b45309;
+  --color-info: #0e7490;
+}
+
+html[data-theme="terminal"][data-mode="oscuro"] {
+  --color-bg: #121b20;
+  --color-surface: #1d2c35;
+  --color-text: #f5f6fa;
+  --color-text-muted: #b8bec9;
+  --color-primary: #7cf1ff;
+  --color-border: #3f5c6c;
+  --color-success: #4fff00;
+  --color-error: #ff5c5c;
+  --color-warning: #ffb000;
+  --color-info: #7cf1ff;
+}
+
+/* Tipografía y glow propios del tema Terminal (independientes del modo) */
+html[data-theme="terminal"] {
+  --font-sans: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  --font-head: 'VT323', 'JetBrains Mono', ui-monospace, monospace;
+  --shadow: 0 0 24px -8px rgba(124, 241, 255, 0.28);
+  --shadow-lg: 0 0 32px -8px rgba(124, 241, 255, 0.32);
 }
 
 /* ============================ 6. PROTANOPIA ============================
