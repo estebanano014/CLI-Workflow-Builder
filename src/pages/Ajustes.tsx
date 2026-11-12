@@ -1,15 +1,21 @@
 import { useRef, useState } from 'react'
+import Swal from 'sweetalert2'
 import { mostrarError, useApp } from '@/context/AppContext'
 import { exportarDatos, importarDatos } from '@/lib/io'
+import { PasswordInput } from '@/components/PasswordInput'
 import type { SO } from '@/lib/types'
 import { SO_LABEL } from '@/lib/types'
 
 const SISTEMAS: SO[] = ['windows', 'linux', 'macos', 'any']
 
 export default function Ajustes() {
-  const { ajustes, guardarAjustes } = useApp()
+  const { ajustes, guardarAjustes, username, cerrarSesion, cambiarPassword } = useApp()
   const [draft, setDraft] = useState(structuredClone(ajustes))
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const [actual, setActual] = useState('')
+  const [nueva, setNueva] = useState('')
+  const [passError, setPassError] = useState<string | null>(null)
 
   const setVariables = (nombre: string, valor: string, i: number) => {
     setDraft((d) => ({
@@ -30,8 +36,109 @@ export default function Ajustes() {
     }
   }
 
+  const cerrarSesionHandler = async () => {
+    const confirm = await Swal.fire({
+      title: 'Cerrar sesión',
+      text: 'Volverás a la pantalla de inicio. Tus datos se conservan.',
+      icon: 'warning',
+      iconColor: 'var(--color-warning)',
+      showCancelButton: true,
+      confirmButtonText: 'Cerrar sesión',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: 'var(--color-warning)',
+      reverseButtons: true
+    })
+    if (!confirm.isConfirmed) return
+    await cerrarSesion()
+  }
+
+  const cambiarPasswordHandler = async () => {
+    setPassError(null)
+    if (!actual) {
+      setPassError('Escribe tu contraseña actual.')
+      return
+    }
+    if (!nueva) {
+      setPassError('Escribe la nueva contraseña.')
+      return
+    }
+    if (nueva !== nueva.trim()) {
+      setPassError('La contraseña no puede empezar ni terminar con espacios.')
+      return
+    }
+    if (nueva.length < 8) {
+      setPassError('La nueva contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+    const confirm = await Swal.fire({
+      title: 'Cambiar contraseña',
+      text: 'Se cerrará tu sesión y tendrás que iniciar sesión de nuevo. ¿Continuar?',
+      icon: 'warning',
+      iconColor: 'var(--color-warning)',
+      showCancelButton: true,
+      confirmButtonText: 'Cambiar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: 'var(--color-warning)',
+      reverseButtons: true
+    })
+    if (!confirm.isConfirmed) return
+    try {
+      await cambiarPassword(actual, nueva)
+      await Swal.fire({
+        title: 'Contraseña cambiada',
+        text: 'Inicia sesión con tu nueva contraseña.',
+        icon: 'success'
+      })
+    } catch (e) {
+      mostrarError(e)
+    }
+  }
+
   return (
     <div style={{ maxWidth: 720 }}>
+      <section className="card" style={{ marginBottom: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Cuenta</h2>
+        <p className="muted" style={{ fontSize: 13 }}>
+          Sesión iniciada como <strong>{username ?? 'usuario'}</strong>. Cuenta única local de este
+          equipo.
+        </p>
+        <div className="row">
+          <button type="button" className="btn btn-danger" onClick={() => void cerrarSesionHandler()}>
+            <i className="fa-solid fa-right-from-bracket" aria-hidden="true" /> Cerrar sesión
+          </button>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginBottom: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Cambiar contraseña</h2>
+        <p className="muted" style={{ fontSize: 13 }}>
+          Al cambiarla se cerrará tu sesión. Entre 8 y 128 caracteres, sin espacios al inicio ni al
+          final. Si la olvidas, borra <code>datos_auth.json</code> para restablecer el acceso.
+        </p>
+        <PasswordInput
+          id="pass-actual"
+          label="Contraseña actual"
+          value={actual}
+          onChange={setActual}
+          autoComplete="current-password"
+        />
+        <PasswordInput
+          id="pass-nueva"
+          label="Nueva contraseña"
+          value={nueva}
+          onChange={setNueva}
+          autoComplete="new-password"
+        />
+        {passError && (
+          <p className="field-error" role="alert" aria-live="assertive">
+            <i className="fa-solid fa-circle-exclamation" aria-hidden="true" /> {passError}
+          </p>
+        )}
+        <button type="button" className="btn btn-primary" onClick={() => void cambiarPasswordHandler()}>
+          <i className="fa-solid fa-key" aria-hidden="true" /> Cambiar contraseña
+        </button>
+      </section>
+
       <section className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ marginTop: 0 }}>Sistema operativo preferido</h2>
         <div className="field">
@@ -54,8 +161,8 @@ export default function Ajustes() {
       <section className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ marginTop: 0 }}>Variables globales</h2>
         <p className="muted" style={{ fontSize: 13 }}>
-          Valores reutilizables en todas las rutas. Se resuelven en silencio (precedencia: variable de paso &gt;
-          global).
+          Valores reutilizables en todas las rutas. Se resuelven en silencio (precedencia: variable de
+          paso &gt; global).
         </p>
         {draft.variablesGlobales.map((v, i) => (
           <div className="row" key={i} style={{ marginBottom: 8 }}>

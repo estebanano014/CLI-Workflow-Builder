@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { AppProvider, useApp } from '@/context/AppContext'
 import { Sidebar } from '@/components/Sidebar'
 import Dashboard from '@/pages/Dashboard'
@@ -7,6 +8,8 @@ import Ejecucion from '@/pages/Ejecucion'
 import RecetaEditor from '@/pages/RecetaEditor'
 import RecetaDetalle from '@/pages/RecetaDetalle'
 import Ajustes from '@/pages/Ajustes'
+import Login from '@/pages/Login'
+import Registro from '@/pages/Registro'
 import type { Vista } from '@/lib/types'
 
 function tituloDe(vista: Vista): string {
@@ -68,10 +71,44 @@ function Shell() {
   )
 }
 
+function AuthGate() {
+  const { comprobando, autenticado } = useApp()
+  const [pantalla, setPantalla] = useState<'login' | 'registro'>('login')
+  const [usuarioPrefill, setUsuarioPrefill] = useState('')
+
+  if (comprobando) {
+    return (
+      <main className="auth-screen">
+        <p className="muted" role="status">
+          <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Comprobando sesión…
+        </p>
+      </main>
+    )
+  }
+
+  if (!autenticado) {
+    return pantalla === 'login' ? (
+      <Login
+        irARegistro={() => setPantalla('registro')}
+        initialUsername={usuarioPrefill}
+      />
+    ) : (
+      <Registro
+        irALogin={(username) => {
+          if (username) setUsuarioPrefill(username)
+          setPantalla('login')
+        }}
+      />
+    )
+  }
+
+  return <Shell />
+}
+
 export default function App() {
   return (
     <AppProvider>
-      <Shell />
+      <AuthGate />
     </AppProvider>
   )
 }

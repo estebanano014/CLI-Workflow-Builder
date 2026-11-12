@@ -1,17 +1,74 @@
-"""API HTTP local del núcleo (solo 127.0.0.1, token efímero, /v1)."""
+"""API HTTP local del núcleo (solo 127.0.0.1, token efímero, sesión y /v1).
+
+Dos capas de autenticación independientes:
+  1. Transporte: cabecera `Authorization: Bearer <token efímero>` (por variable
+     de entorno). Prueba que el llamador es el renderer de Electron, no otro
+     proceso local.
+  2. Sesión: cabecera `X-Session-Token`. Prueba que el usuario ha iniciado
+     sesión. Se exige en todos los endpoints de datos; los endpoints `/v1/auth/*`
+     solo requieren la capa de transporte (salvo logout y change-password, que
+     requieren sesión).
+"""
 import json
+import math
 import os
+import secrets
+import threading
+import time
 import uuid
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
-from app.persistence import Store
+from app.auth import (
+    LOCKOUT_SECONDS,
+    MAX_FAILED_ATTEMPTS,
+    find_user,
+    hash_password,
+    normalizar_username,
+    validar_password,
+    verify_password,
+)
+from app.persistence import AuthStore, Store
 
 HOST = "127.0.0.1"
+SESSION_HEADER = "X-Session-Token"
 
 
 def _nuevo_id():
     return uuid.uuid4().hex
+
+
+def _iso_now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+class SessionManager:
+    """Sesiones en memoria del proceso Python: token -> username."""
+
+    def __init__(self):
+        self._tokens = {}
+        self._lock = threading.Lock()
+
+    def crear(self, username):
+        token = secrets.token_urlsafe(32)
+        with self._lock:
+            self._tokens[token] = username
+        return token
+
+    def usuario(self, token):
+        if not token:
+            return None
+        with self._lock:
+            return self._tokens.get(token)
+
+    def invalidar(self, token):
+        with self._lock:
+            self._tokens.pop(token, None)
+
+    def invalidar_todas(self):
+        with self._lock:
+            self._tokens.clear()
 
 
 def _normalize_ruta(ruta):
@@ -37,7 +94,9 @@ def _normalize_receta(receta):
     return receta
 
 
-def make_handler(store, token):
+def make_handler(store, auth_store, token):
+    sessions = SessionManager()
+
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
@@ -54,18 +113,27 @@ def make_handler(store, token):
                 return False
             return True
 
+        def _sesion(self):
+            username = sessions.usuario(self.headers.get(SESSION_HEADER, ""))
+            if username is None:
+                self._json({"detail": "Sesión no válida o expirada"}, 401)
+                return None
+            return username
+
         def _cors(self):
             # La UI local corre en otro origen (localhost:5173 en dev, file:// en producción).
             self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Session-Token")
 
-        def _json(self, obj, status=200):
+        def _json(self, obj, status=200, extra_headers=None):
             body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
             self.send_response(status)
             self._cors()
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
+            for k, v in (extra_headers or {}).items():
+                self.send_header(k, v)
             self.end_headers()
             self.wfile.write(body)
 
@@ -99,8 +167,12 @@ def make_handler(store, token):
             if not self._autenticado():
                 return
             recurso, ident = self._rutear()
+            if recurso == "auth":
+                return self._auth_get(ident)
             if recurso == "salud":
                 return self._json({"ok": True, "schemaVersion": store.data["schemaVersion"]})
+            if self._sesion() is None:
+                return
             if recurso == "rutas":
                 if ident:
                     ruta = next((r for r in store.data["rutas"] if r["id"] == ident), None)
@@ -124,8 +196,12 @@ def make_handler(store, token):
         def do_POST(self):
             if not self._autenticado():
                 return
-            recurso, _ = self._rutear()
+            recurso, ident = self._rutear()
             body = self._leer_cuerpo()
+            if recurso == "auth":
+                return self._auth_post(ident, body)
+            if self._sesion() is None:
+                return
             if recurso == "rutas":
                 return self._crear_ruta(body)
             if recurso == "recetas":
@@ -139,6 +215,8 @@ def make_handler(store, token):
                 return
             recurso, ident = self._rutear()
             body = self._leer_cuerpo()
+            if self._sesion() is None:
+                return
             if recurso == "rutas":
                 return self._actualizar_ruta(ident, body)
             if recurso == "recetas":
@@ -151,13 +229,115 @@ def make_handler(store, token):
             if not self._autenticado():
                 return
             recurso, ident = self._rutear()
+            if self._sesion() is None:
+                return
             if recurso == "rutas":
                 return self._borrar(store.data["rutas"], ident, "Ruta")
             if recurso == "recetas":
                 return self._borrar(store.data["recetas"], ident, "Receta")
             return self._json({"detail": "No encontrado"}, 404)
 
-        # ---------- acciones ----------
+        # ---------- autenticación ----------
+        def _auth_get(self, ident):
+            if ident == "session":
+                username = sessions.usuario(self.headers.get(SESSION_HEADER, ""))
+                if username is None:
+                    return self._json({"detail": "Sin sesión"}, 401)
+                return self._json({"autenticado": True, "username": username})
+            return self._json({"detail": "No encontrado"}, 404)
+
+        def _auth_post(self, ident, body):
+            if ident == "register":
+                return self._auth_register(body)
+            if ident == "login":
+                return self._auth_login(body)
+            if ident == "logout":
+                return self._auth_logout()
+            if ident == "change-password":
+                return self._auth_change_password(body)
+            return self._json({"detail": "No encontrado"}, 404)
+
+        def _auth_register(self, body):
+            if not isinstance(body, dict):
+                return self._json({"detail": "Cuerpo inválido"}, 400)
+            username, err = normalizar_username(body.get("username"))
+            if err:
+                return self._json({"detail": err}, 400)
+            ok, msg = validar_password(body.get("password"))
+            if not ok:
+                return self._json({"detail": msg}, 400)
+            if find_user(auth_store.data["users"], username) is not None:
+                return self._json({"detail": "Ya existe una cuenta local"}, 409)
+            record = hash_password(body.get("password"))
+            auth_store.data["users"].append(
+                {"username": username, **record, "createdAt": _iso_now()}
+            )
+            auth_store.data["failedAttempts"] = 0
+            auth_store.data["lockedUntil"] = None
+            auth_store.save()
+            return self._json({"username": username}, 201)
+
+        def _auth_login(self, body):
+            if not isinstance(body, dict):
+                return self._json({"detail": "Cuerpo inválido"}, 400)
+            now = time.time()
+            locked = auth_store.data.get("lockedUntil")
+            if locked is not None:
+                if now < locked:
+                    retry = int(math.ceil(locked - now))
+                    return self._json(
+                        {"detail": "Demasiados intentos. Inténtalo más tarde.", "retryAfter": retry},
+                        429,
+                        {"Retry-After": str(retry)},
+                    )
+                auth_store.data["lockedUntil"] = None
+                auth_store.data["failedAttempts"] = 0
+            user = find_user(auth_store.data["users"], body.get("username"))
+            if user is None or not verify_password(body.get("password"), user):
+                attempts = auth_store.data["failedAttempts"] + 1
+                if attempts >= MAX_FAILED_ATTEMPTS:
+                    auth_store.data["failedAttempts"] = 0
+                    auth_store.data["lockedUntil"] = now + LOCKOUT_SECONDS
+                else:
+                    auth_store.data["failedAttempts"] = attempts
+                auth_store.save()
+                return self._json({"detail": "Usuario o contraseña incorrectos"}, 401)
+            auth_store.data["failedAttempts"] = 0
+            auth_store.data["lockedUntil"] = None
+            auth_store.save()
+            session_token = sessions.crear(user["username"])
+            return self._json({"token": session_token, "username": user["username"]})
+
+        def _auth_logout(self):
+            session_token = self.headers.get(SESSION_HEADER, "")
+            if sessions.usuario(session_token) is None:
+                return self._json({"detail": "Sin sesión"}, 401)
+            sessions.invalidar(session_token)
+            return self._json({"ok": True})
+
+        def _auth_change_password(self, body):
+            session_token = self.headers.get(SESSION_HEADER, "")
+            username = sessions.usuario(session_token)
+            if username is None:
+                return self._json({"detail": "Sesión no válida o expirada"}, 401)
+            if not isinstance(body, dict):
+                return self._json({"detail": "Cuerpo inválido"}, 400)
+            user = find_user(auth_store.data["users"], username)
+            if user is None:
+                return self._json({"detail": "Usuario no encontrado"}, 404)
+            if not verify_password(body.get("current"), user):
+                return self._json({"detail": "La contraseña actual no es correcta"}, 401)
+            ok, msg = validar_password(body.get("new"))
+            if not ok:
+                return self._json({"detail": msg}, 400)
+            record = hash_password(body.get("new"))
+            for k in ("algorithm", "salt", "hash", "params"):
+                user[k] = record[k]
+            auth_store.save()
+            sessions.invalidar_todas()
+            return self._json({"ok": True})
+
+        # ---------- acciones de dominio ----------
         def _crear_ruta(self, body):
             ruta = body.get("ruta") if isinstance(body, dict) and "ruta" in body else body
             if not isinstance(ruta, dict):
@@ -273,7 +453,8 @@ def make_handler(store, token):
 def run(host=HOST, port=0, token="", data_dir="./data"):
     os.makedirs(data_dir, exist_ok=True)
     store = Store(os.path.join(data_dir, "datos_flujos.json"))
-    handler = make_handler(store, token)
+    auth_store = AuthStore(os.path.join(data_dir, "datos_auth.json"))
+    handler = make_handler(store, auth_store, token)
     server = ThreadingHTTPServer((host, port), handler)
     actual_port = server.server_address[1]
     print(f"CLI_WF_READY {actual_port}", flush=True)

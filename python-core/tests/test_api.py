@@ -10,15 +10,17 @@ from http.server import ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.persistence import Store
+from app.persistence import AuthStore, Store
 from app.server import make_handler
 
 TOKEN = "tokendeprueba"
 
 
-def _req(port, token, method, path, body=None):
+def _req(port, token, method, path, body=None, session=None):
     conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    if session:
+        headers["X-Session-Token"] = session
     data = json.dumps(body).encode("utf-8") if body is not None else None
     conn.request(method, path, body=data, headers=headers)
     res = conn.getresponse()
@@ -36,11 +38,18 @@ class TestApi(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp()
         store = Store(os.path.join(cls.tmp, "datos_flujos.json"))
-        handler = make_handler(store, TOKEN)
+        auth_store = AuthStore(os.path.join(cls.tmp, "datos_auth.json"))
+        handler = make_handler(store, auth_store, TOKEN)
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
         cls.port = cls.server.server_address[1]
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
+
+        # Cuenta y sesión para los tests de datos.
+        _req(cls.port, TOKEN, "POST", "/v1/auth/register", {"username": "tester", "password": "clave1234"})
+        status, body = _req(cls.port, TOKEN, "POST", "/v1/auth/login", {"username": "tester", "password": "clave1234"})
+        assert status == 200, body
+        cls.session = body["token"]
 
     @classmethod
     def tearDownClass(cls):
@@ -62,22 +71,22 @@ class TestApi(unittest.TestCase):
         self.assertTrue(body["ok"])
 
     def test_crud_ruta(self):
-        status, body = _req(self.port, TOKEN, "POST", "/v1/rutas", {"nombre": "Mi ruta"})
+        status, body = _req(self.port, TOKEN, "POST", "/v1/rutas", {"nombre": "Mi ruta"}, session=self.session)
         self.assertEqual(status, 201)
         ruta_id = body["ruta"]["id"]
 
-        status, body = _req(self.port, TOKEN, "GET", "/v1/rutas")
+        status, body = _req(self.port, TOKEN, "GET", "/v1/rutas", session=self.session)
         self.assertEqual(len(body["rutas"]), 1)
 
-        status, _ = _req(self.port, TOKEN, "DELETE", f"/v1/rutas/{ruta_id}")
+        status, _ = _req(self.port, TOKEN, "DELETE", f"/v1/rutas/{ruta_id}", session=self.session)
         self.assertEqual(status, 204)
 
-        status, body = _req(self.port, TOKEN, "GET", "/v1/rutas")
+        status, body = _req(self.port, TOKEN, "GET", "/v1/rutas", session=self.session)
         self.assertEqual(len(body["rutas"]), 0)
 
     def test_nombre_duplicado_409(self):
-        _req(self.port, TOKEN, "POST", "/v1/rutas", {"nombre": "Duplicada"})
-        status, body = _req(self.port, TOKEN, "POST", "/v1/rutas", {"nombre": "Duplicada"})
+        _req(self.port, TOKEN, "POST", "/v1/rutas", {"nombre": "Duplicada"}, session=self.session)
+        status, body = _req(self.port, TOKEN, "POST", "/v1/rutas", {"nombre": "Duplicada"}, session=self.session)
         self.assertEqual(status, 409)
 
     def test_import_export(self):
@@ -87,17 +96,17 @@ class TestApi(unittest.TestCase):
             "recetas": [{"titulo": "r1"}],
             "ajustes": {"variablesGlobales": [], "soPreferido": "linux"},
         }
-        status, body = _req(self.port, TOKEN, "POST", "/v1/import", payload)
+        status, body = _req(self.port, TOKEN, "POST", "/v1/import", payload, session=self.session)
         self.assertEqual(status, 200)
         self.assertEqual(body["importados"], {"rutas": 2, "recetas": 1})
 
-        status, body = _req(self.port, TOKEN, "GET", "/v1/export")
+        status, body = _req(self.port, TOKEN, "GET", "/v1/export", session=self.session)
         self.assertEqual(status, 200)
         self.assertEqual(len(body["rutas"]), 2)
         self.assertEqual(body["ajustes"]["soPreferido"], "linux")
 
     def test_import_estructura_invalida_400(self):
-        status, _ = _req(self.port, TOKEN, "POST", "/v1/import", {"foo": "bar"})
+        status, _ = _req(self.port, TOKEN, "POST", "/v1/import", {"foo": "bar"}, session=self.session)
         self.assertEqual(status, 400)
 
 

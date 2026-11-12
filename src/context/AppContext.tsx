@@ -29,6 +29,14 @@ interface AppContextValue {
   eliminarReceta: (id: string) => Promise<void>
   duplicarReceta: (id: string) => Promise<void>
   guardarAjustes: (ajustes: Ajustes) => Promise<void>
+  // Sesión local
+  comprobando: boolean
+  autenticado: boolean
+  username: string | null
+  iniciarSesion: (username: string, password: string) => Promise<void>
+  registrar: (username: string, password: string) => Promise<void>
+  cerrarSesion: () => Promise<void>
+  cambiarPassword: (current: string, nueva: string) => Promise<void>
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined)
@@ -40,6 +48,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [vista, setVista] = useState<Vista>({ nombre: 'dashboard' })
+  const [comprobando, setComprobando] = useState(true)
+  const [autenticado, setAutenticado] = useState(false)
+  const [username, setUsername] = useState<string | null>(null)
   const cargadoRef = useRef(false)
 
   const navegar = useCallback((v: Vista) => setVista(v), [])
@@ -64,11 +75,70 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Al arrancar se consulta la sesión; si no la hay, se muestra Login.
   useEffect(() => {
     if (cargadoRef.current) return
     cargadoRef.current = true
-    void recargar()
+    void (async () => {
+      try {
+        const api = await getApi()
+        const ses = await api.session()
+        setUsername(ses.username)
+        setAutenticado(true)
+        await recargar()
+      } catch {
+        setAutenticado(false)
+      } finally {
+        setComprobando(false)
+      }
+    })()
   }, [recargar])
+
+  const iniciarSesion = useCallback(
+    async (user: string, pass: string) => {
+      const api = await getApi()
+      const res = await api.login(user, pass)
+      api.setSessionToken(res.token)
+      setUsername(res.username)
+      setAutenticado(true)
+      await recargar()
+    },
+    [recargar]
+  )
+
+  const registrar = useCallback(async (user: string, pass: string) => {
+    const api = await getApi()
+    await api.register(user, pass)
+  }, [])
+
+  const cerrarSesion = useCallback(async () => {
+    const api = await getApi()
+    try {
+      await api.logout()
+    } catch {
+      // La sesión ya pudo expirar; se limpia igualmente en local.
+    }
+    api.setSessionToken(null)
+    setAutenticado(false)
+    setUsername(null)
+    setRutas([])
+    setRecetas([])
+    setAjustes(ajustesDefault())
+    setVista({ nombre: 'dashboard' })
+  }, [])
+
+  const cambiarPassword = useCallback(async (current: string, nueva: string) => {
+    const api = await getApi()
+    await api.changePassword(current, nueva)
+    // La contraseña cambia: el núcleo invalida las sesiones.
+    api.setSessionToken(null)
+    setAutenticado(false)
+    setUsername(null)
+    setRutas([])
+    setRecetas([])
+    setAjustes(ajustesDefault())
+    setVista({ nombre: 'dashboard' })
+  }, [])
 
   const guardarRuta = useCallback(
     async (ruta: Ruta): Promise<Ruta> => {
@@ -171,7 +241,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       guardarReceta,
       eliminarReceta,
       duplicarReceta,
-      guardarAjustes
+      guardarAjustes,
+      comprobando,
+      autenticado,
+      username,
+      iniciarSesion,
+      registrar,
+      cerrarSesion,
+      cambiarPassword
     }),
     [
       rutas,
@@ -188,7 +265,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       guardarReceta,
       eliminarReceta,
       duplicarReceta,
-      guardarAjustes
+      guardarAjustes,
+      comprobando,
+      autenticado,
+      username,
+      iniciarSesion,
+      registrar,
+      cerrarSesion,
+      cambiarPassword
     ]
   )
 

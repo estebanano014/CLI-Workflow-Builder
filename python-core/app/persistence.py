@@ -1,46 +1,38 @@
-"""Persistencia JSON local: schemaVersion, escritura atómica y backup."""
+"""Persistencia JSON local: schemaVersion, escritura atómica y backup.
+
+Proporciona una base reutilizable (`AtomicJsonStore`) con escritura atómica
+(tmp + rename) y backup del estado anterior, usada tanto por el JSON de dominio
+(`datos_flujos.json`) como por el JSON de credenciales (`datos_auth.json`).
+"""
 import copy
 import json
 import os
 import shutil
 import threading
 
-DEFAULT_DATA = {
-    "schemaVersion": 1,
-    "rutas": [],
-    "recetas": [],
-    "ajustes": {"variablesGlobales": [], "soPreferido": "windows"},
-}
 
-
-class Store:
-    """Gestiona el archivo datos_flujos.json con escritura atómica y backup."""
+class AtomicJsonStore:
+    """Carga/guarda un archivo JSON con escritura atómica y backup ante corrupción."""
 
     def __init__(self, path):
         self.path = path
         self.lock = threading.Lock()
         self.data = self._load()
 
-    def _read_json(self, path):
+    @staticmethod
+    def _read_json(path):
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    @staticmethod
-    def _normalize(data):
-        if not isinstance(data, dict):
-            raise ValueError("el archivo no contiene un objeto JSON")
-        data.setdefault("schemaVersion", 1)
-        data.setdefault("rutas", [])
-        data.setdefault("recetas", [])
-        if not isinstance(data.get("ajustes"), dict):
-            data["ajustes"] = copy.deepcopy(DEFAULT_DATA["ajustes"])
-        data["ajustes"].setdefault("variablesGlobales", [])
-        data["ajustes"].setdefault("soPreferido", "windows")
+    def _default(self):
+        return {}
+
+    def _normalize(self, data):
         return data
 
     def _load(self):
         if not os.path.exists(self.path):
-            return copy.deepcopy(DEFAULT_DATA)
+            return copy.deepcopy(self._default())
         try:
             return self._normalize(self._read_json(self.path))
         except Exception:
@@ -66,3 +58,48 @@ class Store:
             if os.path.exists(self.path):
                 shutil.copy2(self.path, self.path + ".bak")
             os.replace(tmp, self.path)
+
+
+class Store(AtomicJsonStore):
+    """Gestiona `datos_flujos.json` (dominio: rutas, recetas, ajustes)."""
+
+    def _default(self):
+        return {
+            "schemaVersion": 1,
+            "rutas": [],
+            "recetas": [],
+            "ajustes": {"variablesGlobales": [], "soPreferido": "windows"},
+        }
+
+    def _normalize(self, data):
+        if not isinstance(data, dict):
+            raise ValueError("el archivo no contiene un objeto JSON")
+        data.setdefault("schemaVersion", 1)
+        data.setdefault("rutas", [])
+        data.setdefault("recetas", [])
+        if not isinstance(data.get("ajustes"), dict):
+            data["ajustes"] = copy.deepcopy(self._default()["ajustes"])
+        data["ajustes"].setdefault("variablesGlobales", [])
+        data["ajustes"].setdefault("soPreferido", "windows")
+        return data
+
+
+class AuthStore(AtomicJsonStore):
+    """Gestiona `datos_auth.json` (credenciales de la cuenta local y bloqueo)."""
+
+    def _default(self):
+        return {
+            "schemaVersion": 1,
+            "users": [],
+            "failedAttempts": 0,
+            "lockedUntil": None,
+        }
+
+    def _normalize(self, data):
+        if not isinstance(data, dict):
+            raise ValueError("el archivo no contiene un objeto JSON")
+        data.setdefault("schemaVersion", 1)
+        data.setdefault("users", [])
+        data.setdefault("failedAttempts", 0)
+        data.setdefault("lockedUntil", None)
+        return data

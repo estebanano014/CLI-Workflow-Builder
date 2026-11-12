@@ -2,12 +2,12 @@
 
 ## GESTOR VISUAL DE FLUJOS DE TRABAJO (CLI WORKFLOW BUILDER)
 
-- Versión: 1.1
+- Versión: 1.2
 - Estándar: IEEE 830-1998
 - Estado: Línea base para desarrollo
 - SO objetivo: Windows 10/11
 - Dependencia de Internet: Ninguna (offline por diseño)
-- Fecha: 2026-11-07
+- Fecha: 2026-11-10
 
 ## ÍNDICE
 
@@ -24,7 +24,7 @@ Definir los requisitos funcionales y no funcionales de una aplicación de escrit
 
 ### 1.2 Alcance
 
-Dentro del MVP: Dashboard, Biblioteca de comandos, Constructor de Rutas, Modo Ejecución paso a paso, Módulo de Recetas de Lógica, Ajustes, Import/Export, API local del núcleo, persistencia JSON local.
+Dentro del MVP: Dashboard, Biblioteca de comandos, Constructor de Rutas, Modo Ejecución paso a paso, Módulo de Recetas de Lógica, Ajustes, Import/Export, API local del núcleo, persistencia JSON local, autenticación local de cuenta única (registro y login).
 
 Fuera del MVP: ejecución real de comandos en terminal, sincronización en nube, multiusuario, historial de ejecuciones, práctica guiada formal, drag & drop, internacionalización, ejecución en sistemas operativos distintos de Windows.
 
@@ -63,10 +63,11 @@ Aplicación de escritorio Electron + React + TypeScript con un núcleo Python qu
 5. Ajustes (variables globales, sistema operativo preferido, import/export).
 6. API local documentada para comunicación con la interfaz y herramientas locales.
 7. Biblioteca de comandos: catálogo de comandos comunes organizado por sistema operativo, con búsqueda por acción y filtros.
+8. Autenticación local de cuenta única (registro, login, cierre de sesión y cambio de contraseña), sin conexión.
 
 ### 2.3 Usuarios
 
-Usuario único (solopreneur). Sin roles ni autenticación de usuarios finales. El token efímero protege la API frente a otros procesos locales.
+Usuario único (solopreneur). Autenticación local de una sola cuenta (registro y login offline); sin roles ni multiusuario. El token efímero protege la API frente a otros procesos locales y la sesión protege los datos frente al acceso local no autenticado.
 
 ### 2.4 Restricciones
 
@@ -151,6 +152,19 @@ Prioridades: M = Must (imprescindible en MVP), S = Should, C = Could.
 - **RF-067.** Filtro por categoría. Prioridad: S. Criterio de aceptación: combinable con la búsqueda y con el filtro de SO.
 - **RF-068.** Copiar comando al portapapeles con feedback en el propio botón. Prioridad: M. Criterio de aceptación: feedback visual aproximado de 1.5 s; fallback si el portapapeles falla.
 
+#### 3.1.9 Autenticación local
+
+- **RF-069.** Registro de una única cuenta local (usuario y contraseña). Prioridad: M. Criterio de aceptación: `POST /v1/auth/register` responde `201`; `409` si ya existe una cuenta; `400` si el usuario o la contraseña no cumplen la política.
+- **RF-070.** Login local: devuelve un token de sesión y el nombre de usuario. Prioridad: M. Criterio de aceptación: `POST /v1/auth/login` responde `200 {token, username}`; `401` con mensaje genérico "Usuario o contraseña incorrectos" ante credenciales erróneas.
+- **RF-071.** Cierre de sesión: invalida la sesión actual. Prioridad: M. Criterio de aceptación: tras `logout`, el token de sesión deja de ser válido.
+- **RF-072.** Estado de sesión al arrancar: la UI consulta la sesión y, si no la hay, muestra Login (nunca el Dashboard). Prioridad: M. Criterio de aceptación: al reiniciar la app se vuelve a pedir login.
+- **RF-073.** Cambio de contraseña (requiere sesión). Prioridad: M. Criterio de aceptación: exige la contraseña actual, valida la nueva según la política e invalida todas las sesiones.
+- **RF-074.** Protección de datos: todos los endpoints de datos exigen token de sesión. Prioridad: M. Criterio de aceptación: petición a `/v1/rutas`, `/v1/recetas`, `/v1/ajustes`, `/v1/import` o `/v1/export` sin sesión devuelve `401`.
+- **RF-075.** Credenciales seguras: contraseña derivada con `hashlib.scrypt` (o `pbkdf2_hmac`), sal aleatoria de 16 bytes, verificación con `hmac.compare_digest` y parámetros guardados en el archivo. Prioridad: M. Criterio de aceptación: `datos_auth.json` nunca contiene la contraseña en claro; dos registros de la misma contraseña producen hashes distintos.
+- **RF-076.** Política de contraseña: 8–128 caracteres, sin espacios al inicio/fin, sin exigir mayúsculas ni símbolos; normalización NFKC y medidor de fuerza en el registro. Prioridad: M. Criterio de aceptación: contraseñas fuera de política se rechazan con mensaje claro.
+- **RF-077.** Bloqueo temporal: 5 intentos fallidos → bloqueo de 30 s con backoff; contador persistido en `datos_auth.json`. Prioridad: M. Criterio de aceptación: el sexto intento responde `429` con `retryAfter`; al expirar, el login vuelve a funcionar.
+- **RF-078.** Restablecimiento de acceso sin recuperación: borrar `datos_auth.json` restablece el acceso sin tocar los datos de flujos. Prioridad: M. Criterio de aceptación: documentado en README y en Ajustes.
+
 ### 3.2 Requisitos No Funcionales (RNF)
 
 - **RNF-001.** Offline por diseño: ninguna funcionalidad depende de Internet ni envía telemetría. Prioridad: M. Criterio de aceptación: prueba con red desconectada; todas las funciones operan.
@@ -186,6 +200,7 @@ Prioridades: M = Must (imprescindible en MVP), S = Should, C = Could.
 - Sin drag & drop en MVP: afecta RF-011.
 - Sin ejecución real de comandos: ver alcance 1.2.
 - Biblioteca de comandos (catálogo multi-SO, sameInAllOS, búsqueda por acción, filtros por SO/categoría): afecta RF-063 a RF-068, RNF-017, RNF-018.
+- Autenticación local (cuenta única, hash scrypt/pbkdf2, sesión en memoria, bloqueo): afecta RF-069 a RF-078, RNF-010.
 
 ### Apéndice B. Supuestos y dependencias externas
 
