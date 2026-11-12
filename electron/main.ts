@@ -3,12 +3,21 @@ import { randomBytes } from 'node:crypto'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { createServer } from 'node:net'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
 let pyProc: ChildProcess | null = null
 let port = 0
 let token = ''
 let mainWindow: BrowserWindow | null = null
+
+// Enlace profundo: cliwf://... abre (o enfoca) la app instalada.
+const PROTOCOL = 'cliwf'
+
+function enfocarVentana(): void {
+  if (!mainWindow) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.focus()
+}
 
 function findFreePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -133,23 +142,42 @@ function createWindow(): void {
 
 ipcMain.handle('cliWF:connection', () => ({ port, token }))
 
-app.whenReady().then(async () => {
-  try {
-    await startPython()
-  } catch (err) {
-    console.error('No se pudo iniciar el núcleo Python:', err)
+// Registrar el protocolo cliwf:// para que un enlace abra la app instalada.
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [resolve(process.argv[1])])
   }
-  createWindow()
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL)
+}
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  // Si la app ya está abierta y se pulsa el enlace cliwf://, se enfoca la ventana existente.
+  app.on('second-instance', () => {
+    enfocarVentana()
   })
-})
 
-app.on('before-quit', () => {
-  stopPython()
-})
+  app.whenReady().then(async () => {
+    try {
+      await startPython()
+    } catch (err) {
+      console.error('No se pudo iniciar el núcleo Python:', err)
+    }
+    createWindow()
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+
+  app.on('before-quit', () => {
+    stopPython()
+  })
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit()
+  })
+}

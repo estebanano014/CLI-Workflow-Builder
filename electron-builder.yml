@@ -1,5 +1,9 @@
 appId: com.cliwf.builder
 productName: CLI Workflow Builder
+protocols:
+  - name: CLI Workflow Builder
+    schemes:
+      - cliwf
 directories:
   output: dist
   buildResources: build
