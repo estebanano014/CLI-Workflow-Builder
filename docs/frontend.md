@@ -45,6 +45,7 @@ Casos de uso obligatorios:
   - `cambiarModo()`: alterna claro/oscuro.
 - Persistencia en `localStorage`.
 - Se aplica el tema **antes** de que cargue React (script inline en `index.html`) para evitar flash (FOUC).
+- **Modo por defecto: oscuro.** El tema `Neutro` en modo oscuro replica la paleta de la página de lanzamiento (`landing/index.html`): `#111827` fondo, `#1f2937` superficie, `#3b82f6` acento, texto `#e5e7eb`/`#9ca3af` y borde `#374151`. Así la app abre con la misma estética que la landing.
 
 ### Variables por tema
 
@@ -90,3 +91,28 @@ Definidos en `:root` (en `src/styles/themes.css`) y reutilizados en `src/styles/
 - Header sticky con `backdrop-filter` sutil; sidebar y footer con bordes hairline.
 - Foco visible unificado (`:focus-visible` con anillo del color primario).
 - Buscador protagonista (input tipo pill con icono) en la sección Biblioteca.
+
+## Pantallas de autenticación (Login / Registro)
+
+- **Gate en `App.tsx`:** al arrancar se consulta `GET /v1/auth/session`. Si no hay
+  sesión se muestra `Login`/`Registro`; si la hay, el shell normal. Nunca se ve el
+  Dashboard sin sesión.
+- **Semántica:** `<main>` centrado, `<section class="card">`, `<header>`, `<form>`,
+  `<label htmlFor>` asociado y `<footer>`. Navegación por teclado y Enter para
+  enviar (submit del formulario).
+- **Estética de tarjeta:** `.auth-card` replica la tarjeta de la landing:
+  `max-width: 420px`, radio `--radius-lg` (14px), padding amplio y
+  `--shadow-lg`.
+- **Errores:** los errores del formulario (validación local y respuestas del
+  servidor como credenciales incorrectas o bloqueo) se muestran en una región
+  accesible inline (`role="alert"`, `aria-live="assertive"`, `aria-describedby`
+  desde los inputs) con icono + texto (regla de oro de daltonismo). Nunca se
+  muestran hashes ni detalles técnicos.
+- **SweetAlert2** se usa para confirmaciones y feedback modal (cuenta creada,
+  cerrar sesión, cambiar contraseña). Nunca `alert()`.
+- **Contraseña:** botón mostrar/ocultar accesible (`aria-pressed`) como botón
+  independiente del input, de modo que no impide pegar. En el registro hay un
+  medidor de fuerza simple (`role="meter"`) con texto además de color.
+- **Ajustes:** cerrar sesión y cambiar contraseña con confirmación previa y
+  feedback con SweetAlert2. Al cambiar la contraseña se cierra la sesión y se
+  vuelve a Login.

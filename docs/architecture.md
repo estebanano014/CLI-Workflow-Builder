@@ -42,6 +42,45 @@ Aplicación de escritorio offline para Windows dividida en dos procesos:
 - Se verifica además que la IP del cliente sea `127.0.0.1`.
 - El token no se persiste y cambia en cada arranque.
 
+## Autenticación local (RF-069 a RF-078)
+
+- **Cuenta única local:** las credenciales viven en `datos_auth.json`, un archivo
+  separado del JSON de dominio, con su propio `schemaVersion`. El modelo se guarda
+  como lista `users` con un elemento, para poder crecer a multiperfil sin migrar.
+- **Hash:** `hashlib.scrypt` (con fallback a `pbkdf2_hmac` si el intérprete
+  embebido no lo soporta), sal aleatoria de 16 bytes (`secrets.token_bytes`) y
+  verificación en tiempo constante (`hmac.compare_digest`). El algoritmo y sus
+  parámetros se guardan en el archivo para poder migrarlos. La contraseña nunca se
+  guarda en claro, ni en logs, ni llega al renderer.
+- **Dos capas de token (independientes):**
+  1. *Transporte:* cabecera `Authorization: Bearer <token efímero>`, generado por
+     Electron y entregado por variable de entorno. Prueba que el llamador es el
+     renderer de la propia app (no otro proceso local).
+  2. *Sesión:* cabecera `X-Session-Token`, devuelta al hacer login y exigida en
+     todos los endpoints de datos. Vive solo en memoria del proceso Python y muere
+     al cerrar la app (sin "recordarme" en esta iteración).
+- **Bloqueo:** 5 fallos → bloqueo temporal de 30 s. El contador y `lockedUntil` se
+  persisten en `datos_auth.json`. El mensaje de error es genérico ("Usuario o
+  contraseña incorrectos"), sin revelar qué falló.
+- **Restablecimiento:** no hay recuperación de contraseña. Borrar `datos_auth.json`
+  restablece el acceso sin tocar `datos_flujos.json`.
+- **Persistencia de `datos_auth.json`:** reutiliza `AtomicJsonStore` (escritura
+  atómica + backup), igual que el JSON de dominio.
+
+### Modelo de amenaza (quién puede leer el JSON local)
+
+El login es **control de acceso, no cifrado**: `datos_flujos.json` permanece en
+texto claro en disco. Cualquier proceso con permisos del usuario de Windows (u
+otra persona con acceso a la sesión o a la carpeta de datos) puede leer los flujos.
+Lo que la autenticación local **sí** protege es:
+
+- Evitar que quien abre la aplicación sin la contraseña vea los flujos en la UI.
+- No almacenar la contraseña en claro (solo su hash derivado), de modo que un
+  atacante con el archivo no obtiene una contraseña reutilizable.
+
+Si se requiere confidencialidad real de los datos en disco, habría que cifrar
+`datos_flujos.json` (fuera del alcance de esta iteración).
+
 ## Persistencia (RF-060/061/062)
 
 - Un único archivo `datos_flujos.json` con `schemaVersion`.
@@ -87,3 +126,15 @@ Aplicación de escritorio offline para Windows dividida en dos procesos:
 - **Python embebido:** el script `scripts/fetch-python.ps1` descarga el paquete *embeddable* de Python a `vendor/python`; electron-builder lo copia a `resources/python` (junto a `resources/python-core`) mediante `extraResources`.
 - En modo empaquetado, `main.ts` usa `resources/python/python.exe`; se añade `..\python-core` al `python312._pth` para que el intérprete importe el paquete `app`.
 - Resultado: la app empaquetada funciona **sin Python instalado** en el equipo destino.
+
+## Enlace profundo (deep link)
+
+- La app registra el protocolo propio `cliwf://` (`app.setAsDefaultProtocolClient`),
+  de modo que un enlace `cliwf://...` abre la app instalada.
+- Se usa instancia única (`requestSingleInstanceLock`): si la app ya está abierta,
+  el enlace la enfoca en lugar de abrir una segunda instancia.
+- En el instalador NSIS el protocolo se registra vía `protocols` en
+  `electron-builder.yml`.
+- `landing/index.html` es una página estática opcional (sin dependencias) para
+  publicar el enlace en un host estático (p. ej. Vercel). No forma parte de la
+  aplicación ni afecta su funcionamiento offline.

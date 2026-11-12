@@ -20,7 +20,7 @@ export const TEMAS: TemaInfo[] = [
 ]
 
 export const TEMA_DEFAULT = 'neutro'
-export const MODO_DEFAULT: Modo = 'claro'
+export const MODO_DEFAULT: Modo = 'oscuro'
 
 export const LS_TEMA = 'cliwf.tema'
 export const LS_MODO = 'cliwf.modo'

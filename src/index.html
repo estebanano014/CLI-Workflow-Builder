@@ -9,7 +9,7 @@
       (function () {
         try {
           var t = localStorage.getItem('cliwf.tema') || 'neutro';
-          var m = localStorage.getItem('cliwf.modo') || 'claro';
+          var m = localStorage.getItem('cliwf.modo') || 'oscuro';
           document.documentElement.setAttribute('data-theme', t);
           document.documentElement.setAttribute('data-mode', m);
         } catch (e) {}
