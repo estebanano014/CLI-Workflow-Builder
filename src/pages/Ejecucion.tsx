@@ -15,7 +15,7 @@ interface Props {
 type Fase = 'variables' | 'paso' | 'completado'
 
 export default function Ejecucion({ rutaId }: Props) {
-  const { rutas, ajustes, navegar, recargar } = useApp()
+  const { rutas, ajustes, navegar, recargar, registrarEjecucion } = useApp()
   const ruta = rutas.find((r) => r.id === rutaId)
 
   const [fase, setFase] = useState<Fase>('variables')
@@ -28,6 +28,7 @@ export default function Ejecucion({ rutaId }: Props) {
   const [errorVars, setErrorVars] = useState('')
 
   const initRef = useRef<string | null>(null)
+  const inicioRef = useRef<number | null>(null)
 
   const usadas = useMemo(() => (ruta ? variablesDeRuta(ruta) : []), [ruta])
   const defaults = useMemo(() => {
@@ -77,13 +78,23 @@ export default function Ejecucion({ rutaId }: Props) {
     setErrorVars('')
     setIndice(0)
     setFase('paso')
+    inicioRef.current = Date.now()
   }
 
   const marcarCompletado = async () => {
+    const duracionMs = inicioRef.current ? Date.now() - inicioRef.current : 0
     try {
       const api = await getApi()
       const { ruta: actual } = await api.getRuta(rutaId)
       await api.updateRuta(rutaId, { ...actual, lastRunAt: new Date().toISOString() })
+      await registrarEjecucion({
+        tipo: 'ruta',
+        refId: rutaId,
+        nombre: actual.nombre,
+        pasosHechos: actual.pasos.length,
+        pasosTotal: actual.pasos.length,
+        duracionMs
+      })
       await recargar()
     } catch {
       /* no bloquea la pantalla de completado */
@@ -283,6 +294,7 @@ export default function Ejecucion({ rutaId }: Props) {
               setIndice(0)
               setFase('paso')
               setCopiado(false)
+              inicioRef.current = Date.now()
             }}
           >
             <i className="fa-solid fa-rotate-right" aria-hidden="true" /> Repetir

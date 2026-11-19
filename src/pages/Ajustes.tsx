@@ -3,13 +3,14 @@ import Swal from 'sweetalert2'
 import { mostrarError, useApp } from '@/context/AppContext'
 import { exportarDatos, importarDatos } from '@/lib/io'
 import { PasswordInput } from '@/components/PasswordInput'
+import { APP_VERSION, ajustesDefault } from '@/lib/utils'
 import type { SO } from '@/lib/types'
 import { SO_LABEL } from '@/lib/types'
 
 const SISTEMAS: SO[] = ['windows', 'linux', 'macos', 'any']
 
 export default function Ajustes() {
-  const { ajustes, guardarAjustes, username, cerrarSesion, cambiarPassword } = useApp()
+  const { ajustes, guardarAjustes, recargar, username, cerrarSesion, cambiarPassword } = useApp()
   const [draft, setDraft] = useState(structuredClone(ajustes))
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -31,6 +32,18 @@ export default function Ajustes() {
   const guardar = async () => {
     try {
       await guardarAjustes(draft)
+    } catch (e) {
+      mostrarError(e)
+    }
+  }
+
+  const importarDesdeArchivo = async (archivo: File) => {
+    try {
+      const data = await importarDatos(archivo)
+      if (data) {
+        await recargar()
+        setDraft(structuredClone(data.ajustes ?? ajustesDefault()))
+      }
     } catch (e) {
       mostrarError(e)
     }
@@ -96,6 +109,40 @@ export default function Ajustes() {
 
   return (
     <div style={{ maxWidth: 720 }}>
+      <section className="card" style={{ marginBottom: 16 }}>
+        <h2 style={{ marginTop: 0 }}>
+          <i className="fa-solid fa-circle-info" aria-hidden="true" /> Acerca de
+        </h2>
+        <p className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
+          <strong>CLI Workflow Builder</strong> · versión {APP_VERSION} · 100&nbsp;% sin conexión. Interfaz
+          Electron + React + TypeScript y núcleo Python con API local. Tus datos se guardan en un único
+          archivo JSON local (<code>datos_flujos.json</code>) con copia de seguridad automática.
+        </p>
+
+        <h3 className="about-subtitle">Atajos del Modo Ejecución</h3>
+        <ul className="shortcut-list">
+          <li>
+            <span className="kbd">→</span> o <span className="kbd">Enter</span> siguiente paso
+          </li>
+          <li>
+            <span className="kbd">←</span> paso anterior
+          </li>
+          <li>
+            <span className="kbd">C</span> copiar comando
+          </li>
+          <li>
+            <span className="kbd">R</span> reiniciar
+          </li>
+          <li>
+            <span className="kbd">Esc</span> salir
+          </li>
+        </ul>
+        <p className="muted" style={{ fontSize: 13, marginBottom: 0 }}>
+          Consejo: en la Biblioteca usa el buscador por <em>acción</em> (por ejemplo, “subir cambios” o
+          “buscar texto”) y filtra por sistema operativo para ver la variante correcta.
+        </p>
+      </section>
+
       <section className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ marginTop: 0 }}>Cuenta</h2>
         <p className="muted" style={{ fontSize: 13 }}>
@@ -213,7 +260,7 @@ export default function Ajustes() {
             style={{ display: 'none' }}
             onChange={(e) => {
               const f = e.target.files?.[0]
-              if (f) void importarDatos(f).catch(mostrarError)
+              if (f) void importarDesdeArchivo(f)
               e.target.value = ''
             }}
             aria-label="Seleccionar archivo para importar"

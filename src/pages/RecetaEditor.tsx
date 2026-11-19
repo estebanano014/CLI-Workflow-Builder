@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useApp } from '@/context/AppContext'
 import { EditableList } from '@/components/EditableList'
 import { TagInput } from '@/components/TagInput'
+import { copiarComoMarkdown } from '@/lib/io'
+import { recetaAMarkdown } from '@/lib/markdown'
 import type { Receta, RecetaPaso } from '@/lib/types'
-import { nuevaReceta, uid } from '@/lib/utils'
+import { moverItem, nuevaReceta, uid } from '@/lib/utils'
 
 interface Props {
   recetaId?: string
@@ -41,6 +43,8 @@ export default function RecetaEditor({ recetaId }: Props) {
       pasos.splice(to, 0, item)
       return { ...r, pasos }
     })
+  const reorderPaso = (from: number, to: number) =>
+    setReceta((r) => ({ ...r, pasos: moverItem(r.pasos, from, to) }))
 
   const guardar = async () => {
     if (!receta.titulo.trim()) {
@@ -133,6 +137,9 @@ export default function RecetaEditor({ recetaId }: Props) {
         onMove={movePaso}
         onDuplicate={duplicatePaso}
         onDelete={deletePaso}
+        onReorder={reorderPaso}
+        dragKey="receta-pasos"
+        collapsible
         renderItem={(paso) => (
           <div className="field">
             <label htmlFor={`receta-paso-${paso.id}`}>Texto del paso</label>
@@ -149,6 +156,9 @@ export default function RecetaEditor({ recetaId }: Props) {
       <footer className="row" style={{ marginTop: 20 }}>
         <button type="button" className="btn" onClick={() => navegar({ nombre: 'dashboard' })}>
           Cancelar
+        </button>
+        <button type="button" className="btn" onClick={() => void copiarComoMarkdown(recetaAMarkdown(receta), 'Receta')}>
+          <i className="fa-brands fa-markdown" aria-hidden="true" /> Copiar Markdown
         </button>
         <span className="grow" />
         <button type="button" className="btn btn-primary" onClick={() => void guardar()}>

@@ -7,20 +7,41 @@ interface Props {
 }
 
 export default function RecetaDetalle({ recetaId }: Props) {
-  const { recetas, navegar, recargar } = useApp()
+  const { recetas, navegar, recargar, registrarEjecucion } = useApp()
   const receta = recetas.find((r) => r.id === recetaId)
   const [checks, setChecks] = useState<Record<string, boolean>>({})
   const [ocultar, setOcultar] = useState(false)
   const [revelados, setRevelados] = useState<Record<string, boolean>>({})
   const initRef = useRef<string | null>(null)
+  const inicioRef = useRef<number>(Date.now())
+  const registradoRef = useRef(false)
 
   useEffect(() => {
     if (!receta || initRef.current === recetaId) return
     initRef.current = recetaId
+    inicioRef.current = Date.now()
+    registradoRef.current = false
     setChecks({})
     setRevelados({})
     setOcultar(false)
   }, [receta, recetaId])
+
+  const registrar = async (titulo: string, total: number) => {
+    if (registradoRef.current) return
+    registradoRef.current = true
+    try {
+      await registrarEjecucion({
+        tipo: 'receta',
+        refId: recetaId,
+        nombre: titulo,
+        pasosHechos: total,
+        pasosTotal: total,
+        duracionMs: Date.now() - inicioRef.current
+      })
+    } catch {
+      /* no bloquea la pantalla */
+    }
+  }
 
   const total = receta?.pasos.length ?? 0
   const completados = useMemo(
@@ -44,6 +65,7 @@ export default function RecetaDetalle({ recetaId }: Props) {
       const api = await getApi()
       const { receta: actual } = await api.getReceta(recetaId)
       await api.updateReceta(recetaId, { ...actual, lastRunAt: new Date().toISOString() })
+      await registrar(actual.titulo, actual.pasos.length)
       await recargar()
       navegar({ nombre: 'dashboard' })
     } catch {
@@ -60,6 +82,7 @@ export default function RecetaDetalle({ recetaId }: Props) {
         void api.then(async (a) => {
           const { receta: actual } = await a.getReceta(recetaId)
           await a.updateReceta(recetaId, { ...actual, lastRunAt: new Date().toISOString() })
+          await registrar(actual.titulo, actual.pasos.length)
           await recargar()
         })
       }

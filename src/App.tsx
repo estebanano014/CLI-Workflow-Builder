@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppProvider, useApp } from '@/context/AppContext'
 import { Sidebar } from '@/components/Sidebar'
+import { CommandPalette } from '@/components/CommandPalette'
 import Dashboard from '@/pages/Dashboard'
 import Biblioteca from '@/pages/Biblioteca'
+import Progreso from '@/pages/Progreso'
+import Terminal from '@/pages/Terminal'
 import RutaEditor from '@/pages/RutaEditor'
 import Ejecucion from '@/pages/Ejecucion'
 import RecetaEditor from '@/pages/RecetaEditor'
@@ -18,6 +21,10 @@ function tituloDe(vista: Vista): string {
       return 'Dashboard'
     case 'biblioteca':
       return 'Biblioteca de comandos'
+    case 'progreso':
+      return 'Progreso'
+    case 'terminal':
+      return 'Terminal'
     case 'ruta-editor':
       return vista.id ? 'Editar ruta' : 'Nueva ruta'
     case 'ejecucion':
@@ -33,6 +40,18 @@ function tituloDe(vista: Vista): string {
 
 function Shell() {
   const { vista } = useApp()
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [])
 
   let contenido: React.ReactNode
   switch (vista.nombre) {
@@ -41,6 +60,12 @@ function Shell() {
       break
     case 'biblioteca':
       contenido = <Biblioteca />
+      break
+    case 'progreso':
+      contenido = <Progreso />
+      break
+    case 'terminal':
+      contenido = <Terminal />
       break
     case 'ruta-editor':
       contenido = <RutaEditor rutaId={vista.id} />
@@ -67,6 +92,7 @@ function Shell() {
       </header>
       <main className="app-main">{contenido}</main>
       <footer className="app-footer">CLI Workflow Builder · funciona sin conexión</footer>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   )
 }

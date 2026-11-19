@@ -3,9 +3,12 @@ import { useApp } from '@/context/AppContext'
 import { EditableList } from '@/components/EditableList'
 import { TagInput } from '@/components/TagInput'
 import { CommandPreview } from '@/components/CommandPreview'
+import { copiarComoMarkdown } from '@/lib/io'
+import { rutaAMarkdown } from '@/lib/markdown'
 import type { Paso, Ruta, SO, Variante, VariableDecl } from '@/lib/types'
 import { SO_LABEL } from '@/lib/types'
 import {
+  moverItem,
   nuevaRuta,
   nuevoPaso,
   nuevaVariante,
@@ -74,6 +77,8 @@ export default function RutaEditor({ rutaId }: Props) {
       pasos.splice(to, 0, item)
       return { ...r, pasos }
     })
+  const reorderPaso = (from: number, to: number) =>
+    setRuta((r) => ({ ...r, pasos: moverItem(r.pasos, from, to) }))
   const updatePaso = (id: string, patch: Partial<Paso>) =>
     setRuta((r) => ({
       ...r,
@@ -129,6 +134,11 @@ export default function RutaEditor({ rutaId }: Props) {
         variantes.splice(to, 0, item)
         return { ...p, variantes }
       })
+    }))
+  const reorderVariante = (pasoId: string, from: number, to: number) =>
+    setRuta((r) => ({
+      ...r,
+      pasos: r.pasos.map((p) => (p.id === pasoId ? { ...p, variantes: moverItem(p.variantes, from, to) } : p))
     }))
 
   // ---------- Variables ----------
@@ -247,6 +257,9 @@ export default function RutaEditor({ rutaId }: Props) {
         onMove={movePaso}
         onDuplicate={duplicatePaso}
         onDelete={deletePaso}
+        onReorder={reorderPaso}
+        dragKey="pasos"
+        collapsible
         renderItem={(paso) => (
           <div>
             <div className="field">
@@ -287,6 +300,8 @@ export default function RutaEditor({ rutaId }: Props) {
                 if (paso.variantes.length <= 1) return
                 deleteVariante(paso.id, id)
               }}
+              onReorder={(from, to) => reorderVariante(paso.id, from, to)}
+              dragKey={`variantes-${paso.id}`}
               renderItem={(variante) => (
                 <div>
                   <div className="row">
@@ -415,6 +430,13 @@ export default function RutaEditor({ rutaId }: Props) {
       <footer className="row" style={{ marginTop: 20 }}>
         <button type="button" className="btn" onClick={() => navegar({ nombre: 'dashboard' })}>
           Cancelar
+        </button>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => void copiarComoMarkdown(rutaAMarkdown(ruta, ajustes.soPreferido), 'Ruta')}
+        >
+          <i className="fa-brands fa-markdown" aria-hidden="true" /> Copiar Markdown
         </button>
         <span className="grow" />
         <button type="button" className="btn btn-primary" onClick={() => void guardar()}>
