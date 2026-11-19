@@ -49,6 +49,7 @@ Cada comando tiene un botón **Copiar**. En el **Modo Ejecución** de una Ruta, 
 - **Recetas:** descompón problemas en pasos con checklist.
 - **Progreso:** historial de ejecuciones, rachas (días seguidos) y calendario de actividad, para convertir la práctica en un hábito.
 - **Terminal integrada:** ejecuta comandos reales en tu equipo, con modo seguro (lista blanca) por defecto y confirmación ante comandos peligrosos.
+- **Asistente de IA local (Ollama):** un chat que entiende lenguaje natural y ejecuta acciones reales (comandos, Git, leer/editar archivos, tests). Ver la sección [Asistente de IA](#asistente-de-ia-local-ollama).
 - **Dashboard:** panel de resumen y widgets colapsables (Resumen, Progreso, Plantillas, Acciones rápidas, Recientes, Favoritos, Pendientes, Etiquetas, Ajustes y Seguridad).
 - **Temas:** 10 temas (6 base × claro/oscuro + 4 de daltonismo), con el tema **Terminal** (monoespaciado, acento cian/verde) por defecto.
 - **Importar / Exportar** tu archivo de datos.
@@ -59,6 +60,7 @@ Cada comando tiene un botón **Copiar**. En el **Modo Ejecución** de una Ruta, 
 - **UI:** Electron + React + TypeScript + Vite (electron-vite), SweetAlert2, Font Awesome y Manrope (todo local, sin CDN).
 - **Núcleo:** Python (biblioteca estándar) con API HTTP local `/v1` (solo `127.0.0.1`, token efímero).
 - **Persistencia:** JSON local (`datos_flujos.json`) con escritura atómica y backup, y `datos_auth.json` para la cuenta local (contraseña con hash, nunca en claro).
+- **Asistente de IA:** integración local con [Ollama](https://ollama.com) (API `/api/chat` con tool calling y streaming) ejecutada en el proceso principal de Electron; sin dependencias npm nuevas (usa `fetch` de Node).
 
 ## 🔗 Enlace para abrir la app (deep link)
 
@@ -74,6 +76,57 @@ Para tener una URL pública con un botón, se incluye una página de lanzamiento
 3. Despliega. El botón "Abrir la aplicación" usará `cliwf://`.
 
 Nota: el enlace solo funciona en el equipo donde la app esté instalada.
+
+## 🤖 Asistente de IA local (Ollama)
+
+La app incluye un asistente de IA que corre **100 % local** sobre
+[Ollama](https://ollama.com). Puedes pedirle en lenguaje natural que ejecute
+acciones reales: comandos de terminal, operaciones de Git, leer/editar archivos y
+ejecutar tests.
+
+### Requisitos
+
+1. Instala [Ollama](https://ollama.com/download) e inícialo (`ollama serve` o la
+   app de escritorio).
+2. Descarga un modelo con soporte de *tool/function calling*. Recomendados:
+
+   ```bash
+   ollama pull qwen2.5:7b      # 7B, excelente en español y tool calling (por defecto)
+   ollama pull qwen2.5:14b     # 14B, aún mejor para tareas complejas (más RAM)
+   ollama pull llama3.1        # 8B, alternativa muy usada
+   ollama pull qwen2.5:3b      # 3B, ligero para equipos modestos
+   ```
+
+### Configuración
+
+Abre la sección **Asistente** (menú lateral) → **Configuración**. Ahí puedes
+cambiar:
+
+- **URL de Ollama** (por defecto `http://localhost:11434`).
+- **Modelo** (con autocompletado de los modelos instalados).
+- **Temperatura** y **contexto** (`num_ctx`).
+- **Directorio de trabajo** (el proyecto sobre el que opera el asistente).
+
+La configuración se guarda en `cliwf-ia-config.json` (carpeta de datos de la app).
+También puedes usar variables de entorno como valores por defecto:
+`CLI_WF_OLLAMA_URL` y `CLI_WF_OLLAMA_MODEL`.
+
+### Qué puede hacer
+
+- **Responder y ejecutar cualquier petición** con contexto de conversación.
+- **Git:** revisar `git status`/`git diff`, agrupar cambios en commits lógicos con
+  mensajes Conventional Commits, hacer `push`/`pull`, crear y cambiar de rama y
+  deshacer cambios.
+- **Terminal:** ejecutar comandos (con confirmación para los peligrosos).
+- **Archivos:** leer, buscar, crear y editar archivos del proyecto.
+- **Código:** explicar, revisar y refactorizar.
+- **Tests:** ejecutar los tests de Python y el typecheck del frontend.
+- **Resumen del proyecto:** estado del repositorio y cambios recientes.
+
+Las acciones destructivas o irreversibles (`push --force`, `reset --hard`, borrar
+ramas, descartar cambios, sobrescribir archivos) **piden confirmación** antes de
+ejecutarse. Todas las acciones quedan registradas en `cliwf-ia.log` (carpeta de
+datos).
 
 ## Documentación
 

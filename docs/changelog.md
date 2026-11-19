@@ -4,6 +4,23 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
+## [0.0.4] - 2026-11-19
+
+### Añadido
+- **Asistente de IA local (Ollama):** chat que entiende lenguaje natural y ejecuta
+  acciones reales. Cliente de Ollama (`electron/ollama.ts`, `/api/chat` con tool
+  calling y streaming), registro de herramientas (`electron/tools.ts`: terminal,
+  Git, archivos y tests) y orquestador (`electron/assistant.ts`). Funciones de Git
+  (status/diff/log/ramas/checkout/add/commit/push/pull/reset/deshacer), lectura y
+  edición de archivos, búsqueda, tests y resumen del proyecto. Confirmación de
+  acciones destructivas, log en `cliwf-ia.log` y configuración en
+  `cliwf-ia-config.json` (o variables `CLI_WF_OLLAMA_URL`/`CLI_WF_OLLAMA_MODEL`).
+  Vista "Asistente" (`src/pages/Asistente.tsx`) con streaming, estado de conexión y
+  panel de configuración.
+
+### Cambiado
+- Versión de la aplicación a `0.0.4` (`package.json`, `package-lock.json` y `APP_VERSION`).
+
 ## [0.0.3] - 2026-11-19
 
 ### Añadido

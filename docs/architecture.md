@@ -176,3 +176,35 @@ enfocado en dominio + persistencia + API.
 - **Limitaciones conocidas:** cada comando corre en una shell nueva (sin estado
   entre ejecuciones); `cd` no persiste el directorio entre comandos. El cwd se
   edita manualmente y por defecto es la carpeta de usuario.
+
+## Asistente de IA local (Ollama)
+
+El asistente integra un LLM local vía **Ollama** (API HTTP `http://localhost:11434`)
+para interpretar lenguaje natural y ejecutar acciones reales. Todo vive en el
+**proceso principal de Electron**, por las mismas razones que el terminal (acceso a
+`child_process`/`fs`) y para evitar CORS en el renderer (que en producción carga por
+`file://`).
+
+- **Módulos:**
+  - `electron/ollama.ts` — cliente de `/api/chat` (tool calling + streaming NDJSON)
+    y `/api/tags`; errores claros para "Ollama apagado", "modelo no descargado" y
+    timeout. Usa `fetch` global de Node (sin dependencias nuevas).
+  - `electron/tools.ts` — registro de herramientas con esquemas JSON: `terminal_ejecutar`,
+    `git_*`, `archivo_*`, `tests_ejecutar`, `proyecto_resumen`. Las destructivas
+    declaran `requiresConfirmation`.
+  - `electron/assistant.ts` — orquestador del bucle de tool-calling (hasta 10
+    iteraciones), mantiene el historial de la conversación y emite streaming.
+- **Flujo:** renderer → IPC `cliWF:assistant-chat` → bucle en main (Ollama ↔
+  herramientas) → eventos `ollama:chunk/status/confirm/done/error` hacia el
+  renderer. La confirmación de acciones destructivas es un *round-trip*: main
+  espera la respuesta del renderer (`cliWF:assistant-confirm`).
+- **Configuración:** `cliwf-ia-config.json` en la carpeta de datos (URL, modelo,
+  temperatura, `num_ctx`, directorio de trabajo y system prompt), con defaults en
+  variables de entorno `CLI_WF_OLLAMA_URL` / `CLI_WF_OLLAMA_MODEL` (modelo por
+  defecto `qwen2.5:7b`).
+- **Registro:** cada ejecución de herramienta se añade a `cliwf-ia.log` (JSON lines
+  con timestamp, herramienta, argumentos, resultado y confirmación).
+- **Modelo de amenaza:** el asistente hereda el alcance de la terminal (ejecuta
+  comandos reales y lee/escribe archivos confinados al directorio de trabajo) y
+  queda detrás de la autenticación local. Las acciones irreversibles piden
+  confirmación; el log permite auditar lo que se ejecutó.

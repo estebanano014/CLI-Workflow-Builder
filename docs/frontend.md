@@ -266,3 +266,23 @@ Definidos en `:root` (en `src/styles/themes.css`) y reutilizados en `src/styles/
 - **Salida coloreada por tipo** (`.entrada` en primario, `.error` en error,
   `.sistema` en muted) siempre con el prefijo `>` en las entradas, de modo que el
   color nunca es la única señal. Timeout, stderr y errores se muestran como texto.
+
+## Asistente de IA (v0.0.4)
+
+- **Vista "Asistente"** (`fa-robot`) en el menú lateral. Chat con burbujas: el
+  usuario a la derecha (`.assistant-msg.usuario`, fondo `--primary-soft`), el
+  asistente a la izquierda (`.assistant-msg.asistente`) y los errores con
+  `.assistant-msg.error` (icono + texto, regla de oro de daltonismo).
+- **Streaming:** el texto del asistente llega por IPC (`ollama:chunk`) y se pinta
+  en una burbuja con cursor parpadeante (`.assistant-cursor`); `ollama:done`
+  finaliza el mensaje y `ollama:error` muestra el error.
+- **Indicador de herramienta:** mientras se ejecuta una acción, se muestra un
+  mensaje "Ejecutando herramienta: `nombre`" (`.assistant-tool`).
+- **Confirmaciones:** `ollama:confirm` abre un SweetAlert2 (Permitir/Cancelar) y
+  responde por `cliWF:assistant-confirm`.
+- **Cabecera de estado:** punto de conexión (Conectado/Sin conexión) + modelo
+  activo, botón "Configuración" (panel colapsable con URL, modelo con
+  autocompletado, temperatura, contexto y directorio de trabajo) y "Nueva
+  conversación".
+- **Accesibilidad:** el área de mensajes se desplaza automáticamente al final; el
+  input tiene `aria-label` y Enter envía (Shift+Enter no).
