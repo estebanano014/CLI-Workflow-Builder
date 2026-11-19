@@ -2,12 +2,16 @@
 
 ## GESTOR VISUAL DE FLUJOS DE TRABAJO (CLI WORKFLOW BUILDER)
 
-- Versión: 1.2
+- Versión: 1.4
 - Estándar: IEEE 830-1998
 - Estado: Línea base para desarrollo
 - SO objetivo: Windows 10/11
 - Dependencia de Internet: Ninguna (offline por diseño)
-- Fecha: 2026-11-10
+- Fecha: 2026-11-19
+
+> **Versión completa:** este documento es la síntesis de una página. La
+> especificación exhaustiva conforme a IEEE 830-1998 (con fichas por requisito,
+> matriz de trazabilidad y diagramas Mermaid) está en `docs/srs/IEEE-830.md`.
 
 ## ÍNDICE
 
@@ -24,9 +28,9 @@ Definir los requisitos funcionales y no funcionales de una aplicación de escrit
 
 ### 1.2 Alcance
 
-Dentro del MVP: Dashboard, Biblioteca de comandos, Constructor de Rutas, Modo Ejecución paso a paso, Módulo de Recetas de Lógica, Ajustes, Import/Export, API local del núcleo, persistencia JSON local, autenticación local de cuenta única (registro y login).
+Dentro del MVP: Dashboard, Biblioteca de comandos (pantalla de inicio), Constructor de Rutas, Modo Ejecución paso a paso, Módulo de Recetas de Lógica, Ajustes, Import/Export, API local del núcleo, persistencia JSON local, autenticación local de cuenta única (registro y login), historial de ejecuciones con estadísticas y rachas, paleta de comandos (Ctrl+K), reordenado por drag & drop, exportación a Markdown, plantillas y terminal integrada (ejecución real con guardarraíles).
 
-Fuera del MVP: ejecución real de comandos en terminal, sincronización en nube, multiusuario, historial de ejecuciones, práctica guiada formal, drag & drop, internacionalización, ejecución en sistemas operativos distintos de Windows.
+Fuera del MVP: ejecución automática de los comandos de una Ruta, sincronización en nube, multiusuario, práctica guiada formal, internacionalización, ejecución en sistemas operativos distintos de Windows.
 
 ### 1.3 Definiciones
 
@@ -37,6 +41,9 @@ Fuera del MVP: ejecución real de comandos en terminal, sincronización en nube,
 - **Variable de paso:** placeholder `{{x}}` definido en el paso, rellenado al iniciar la ejecución.
 - **Variable global:** valor reutilizable definido en Ajustes, resuelto en silencio.
 - **Núcleo:** proceso Python que expone la API local y gestiona el dominio y la persistencia.
+- **Registro de historial:** entrada de actividad (metadatos: tipo, referencia, nombre, pasos y duración) persistida al completar una Ruta o Receta; nunca contiene comandos ni variables.
+- **Paleta de comandos:** overlay global (Ctrl+K) que busca y ejecuta acciones, Rutas, Recetas y comandos del catálogo.
+- **Terminal:** vista que ejecuta comandos reales del sistema con guardarraíles (modo seguro, confirmación de peligrosos y timeout).
 
 ### 1.4 Referencias
 
@@ -64,6 +71,10 @@ Aplicación de escritorio Electron + React + TypeScript con un núcleo Python qu
 6. API local documentada para comunicación con la interfaz y herramientas locales.
 7. Biblioteca de comandos: catálogo de comandos comunes organizado por sistema operativo, con búsqueda por acción y filtros.
 8. Autenticación local de cuenta única (registro, login, cierre de sesión y cambio de contraseña), sin conexión.
+9. Progreso: historial de ejecuciones (solo metadatos), estadísticas, rachas y calendario de actividad.
+10. Paleta de comandos global (Ctrl+K) con búsqueda fuzzy sobre acciones, rutas, recetas y comandos.
+11. Terminal integrada: ejecución real de comandos con modo seguro (lista blanca) y confirmación de peligrosos.
+12. Exportar a Markdown (cheatsheet completo o por elemento) y plantillas de ejemplo.
 
 ### 2.3 Usuarios
 
@@ -165,6 +176,40 @@ Prioridades: M = Must (imprescindible en MVP), S = Should, C = Could.
 - **RF-077.** Bloqueo temporal: 5 intentos fallidos → bloqueo de 30 s con backoff; contador persistido en `datos_auth.json`. Prioridad: M. Criterio de aceptación: el sexto intento responde `429` con `retryAfter`; al expirar, el login vuelve a funcionar.
 - **RF-078.** Restablecimiento de acceso sin recuperación: borrar `datos_auth.json` restablece el acceso sin tocar los datos de flujos. Prioridad: M. Criterio de aceptación: documentado en README y en Ajustes.
 
+#### 3.1.10 Pantalla de inicio y resúmenes
+
+- **RF-079.** La vista inicial tras autenticarse (o al arrancar con sesión válida) es la Biblioteca, no el Dashboard. Prioridad: M. Criterio de aceptación: al reiniciar la app y tras iniciar sesión se muestra la Biblioteca.
+- **RF-080.** Cabecera de la Biblioteca con texto de introducción y estadísticas del catálogo (comandos, categorías, sistemas). Prioridad: M. Criterio de aceptación: los contadores coinciden con el catálogo (comandos, categorías, 3 sistemas).
+- **RF-081.** Chips (píldoras) de categoría en la Biblioteca para filtrar con un clic, además del selector. Prioridad: M. Criterio de aceptación: cada chip filtra correctamente y el chip activo queda resaltado.
+- **RF-082.** Sección "Destacados" en la Biblioteca con comandos frecuentes en tarjetas compactas, visible solo sin filtros activos. Prioridad: M. Criterio de aceptación: aparece solo sin filtros y cada tarjeta permite copiar.
+- **RF-083.** Panel de resumen en el Dashboard con contadores de Rutas, Recetas, Favoritos y Ejecutados. Prioridad: M. Criterio de aceptación: los contadores reflejan los datos y se actualizan al recargar.
+- **RF-084.** Sección "Acerca de" en Ajustes con versión, stack, atajos y consejo de uso. Prioridad: M. Criterio de aceptación: la versión mostrada coincide con `package.json`.
+- **RF-085.** Estados vacíos accionables: el Dashboard sin datos ofrece crear; la Biblioteca sin resultados ofrece limpiar filtros. Prioridad: M. Criterio de aceptación: los botones de acción funcionan.
+
+#### 3.1.11 Progreso e historial
+
+- **RF-086.** Registrar una entrada de historial al completar una Ruta o Receta (`POST /v1/historial`) con metadatos: tipo, referencia, nombre, pasos hechos/total y duración. Prioridad: M. Criterio de aceptación: cada completado genera exactamente una entrada.
+- **RF-087.** Calcular estadísticas agregadas (`GET /v1/estadisticas`): ejecuciones, rutas, recetas, pasos y días activos. Prioridad: M. Criterio de aceptación: los contadores coinciden con el historial.
+- **RF-088.** Mostrar racha actual, racha máxima y calendario de actividad (6 meses). Prioridad: M. Criterio de aceptación: la racha sobrevive si aún no hubo actividad hoy; la rejilla colorea por intensidad con `title` textual.
+- **RF-089.** Vaciar el historial con confirmación (`DELETE /v1/historial`). Prioridad: M. Criterio de aceptación: solo se elimina el historial; rutas y recetas intactas.
+- **RF-090.** El historial solo guarda metadatos, nunca comandos resueltos ni valores de variables (RNF-009). Prioridad: M. Criterio de aceptación: auditoría del JSON sin valores de variables.
+
+#### 3.1.12 Paleta de comandos
+
+- **RF-091.** Ctrl+K (o Cmd+K) abre una paleta global con búsqueda fuzzy sobre acciones, Rutas, Recetas y comandos del catálogo. Prioridad: M. Criterio de aceptación: funciona en cualquier pantalla; navegación por teclado; copiar un comando usa la variante del SO preferido.
+
+#### 3.1.13 Terminal integrada
+
+- **RF-092.** Ejecutar comandos reales del sistema en la vista Terminal (vía IPC de Electron → `child_process.exec`). Prioridad: M. Criterio de aceptación: `whoami` devuelve el usuario; los errores se muestran como texto.
+- **RF-093.** Modo seguro por defecto (lista blanca de comandos de consulta). Prioridad: M. Criterio de aceptación: un comando no permitido se bloquea con mensaje sin ejecutarse.
+- **RF-094.** Confirmación ante comandos peligrosos y timeout (30 s por defecto, máx. 120 s) que cancela procesos colgados. Prioridad: M. Criterio de aceptación: el aviso aparece solo ante peligrosos; un comando que no termina se cancela.
+
+#### 3.1.14 Exportar y plantillas
+
+- **RF-095.** Exportar Rutas, Recetas, Biblioteca o un cheatsheet completo a Markdown, con placeholders `{{x}}` sin resolver. Prioridad: M. Criterio de aceptación: el comando exportado conserva los placeholders.
+- **RF-096.** Crear Rutas y Recetas desde plantillas predefinidas con nombre único. Prioridad: M. Criterio de aceptación: «Usar» crea el elemento y abre su editor.
+- **RF-097.** Reordenar pasos y variantes con drag & drop, manteniendo los botones ↑/↓ como alternativa accesible. Prioridad: M. Criterio de aceptación: arrastrar reordena correctamente y los botones siguen funcionando.
+
 ### 3.2 Requisitos No Funcionales (RNF)
 
 - **RNF-001.** Offline por diseño: ninguna funcionalidad depende de Internet ni envía telemetría. Prioridad: M. Criterio de aceptación: prueba con red desconectada; todas las funciones operan.
@@ -185,6 +230,9 @@ Prioridades: M = Must (imprescindible en MVP), S = Should, C = Could.
 - **RNF-016.** Internacionalización: fuera del MVP; interfaz en español. Prioridad: C. Criterio de aceptación: declarado.
 - **RNF-017.** Rendimiento de la Biblioteca: búsqueda y filtrado menores a 300 ms con el catálogo completo. Prioridad: M. Criterio de aceptación: medición documentada.
 - **RNF-018.** Filtros por SO sin depender solo del color: cada variante muestra su etiqueta (CMD/PowerShell/macOS/Linux). Prioridad: M. Criterio de aceptación: verificación visual en los temas de daltonismo.
+- **RNF-019.** Privacidad del historial: solo metadatos, nunca comandos resueltos ni valores de variables. Prioridad: M. Criterio de aceptación: auditoría del JSON sin tokens ni contraseñas.
+- **RNF-020.** Rendimiento de la paleta de comandos: búsqueda fuzzy menor a 300 ms sobre todo el espacio de búsqueda. Prioridad: M. Criterio de aceptación: medición documentada.
+- **RNF-021.** Seguridad del terminal integrado: timeout (≤ 120 s), modo seguro por defecto, confirmación de peligrosos y alcance limitado a la vista Terminal. Prioridad: M. Criterio de aceptación: pruebas de bloqueo y de cancelación por timeout.
 
 ## 4. APÉNDICES
 
@@ -201,6 +249,11 @@ Prioridades: M = Must (imprescindible en MVP), S = Should, C = Could.
 - Sin ejecución real de comandos: ver alcance 1.2.
 - Biblioteca de comandos (catálogo multi-SO, sameInAllOS, búsqueda por acción, filtros por SO/categoría): afecta RF-063 a RF-068, RNF-017, RNF-018.
 - Autenticación local (cuenta única, hash scrypt/pbkdf2, sesión en memoria, bloqueo): afecta RF-069 a RF-078, RNF-010.
+- Pantalla de inicio (Biblioteca) y secciones de resumen (cabecera, chips, destacados, panel Dashboard, Acerca de): afecta RF-079 a RF-085, RNF-003, RNF-011, RNF-017.
+- Historial, estadísticas y rachas (solo metadatos): afecta RF-086 a RF-090, RNF-009, RNF-019.
+- Paleta de comandos (búsqueda fuzzy, Ctrl+K): afecta RF-091, RNF-020, RNF-011.
+- Terminal integrada (ejecución real vía IPC de Electron): afecta RF-092 a RF-094, RNF-021, RNF-010.
+- Exportar a Markdown y plantillas; drag & drop: afecta RF-095 a RF-097, RF-011, RNF-008.
 
 ### Apéndice B. Supuestos y dependencias externas
 
@@ -216,6 +269,6 @@ Prioridades: M = Must (imprescindible en MVP), S = Should, C = Could.
 
 ### Apéndice D. Fuera de alcance (evolutivo)
 
-Ejecución real de comandos, historial de ejecuciones, estadísticas y rachas, práctica guiada formal, drag & drop, enlace Ruta-Receta, internacionalización, multiusuario, sincronización, instaladores firmados, auto-actualización.
+Ejecución automática de los pasos de una Ruta, práctica guiada formal, enlace Ruta-Receta, internacionalización, multiusuario, sincronización, instaladores firmados, auto-actualización, cifrado en reposo del JSON de datos.
 
 FIN DEL DOCUMENTO
