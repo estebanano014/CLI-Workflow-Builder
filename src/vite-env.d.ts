@@ -41,9 +41,33 @@ export interface AssistantConfirmPayload {
   message: string
 }
 
+export interface MensajeConversacion {
+  role: 'system' | 'user' | 'assistant' | 'tool'
+  content: string
+  tool_calls?: { function: { name: string; arguments: Record<string, unknown> } }[]
+  tool_name?: string
+}
+
+export interface ConversacionResumen {
+  id: string
+  titulo: string
+  updatedAt: string
+  mensajes: number
+}
+
+export interface LoadConversacionResult {
+  ok: boolean
+  error?: string
+  messages?: MensajeConversacion[]
+}
+
 export interface AssistantBridge {
-  chat: (message: string) => Promise<AssistantChatResult>
+  chat: (payload: { message: string; username?: string }) => Promise<AssistantChatResult>
   reset: () => Promise<{ ok: boolean }>
+  newConversation: () => Promise<{ ok: boolean }>
+  listConversations: (username: string) => Promise<ConversacionResumen[]>
+  loadConversation: (id: string, username: string) => Promise<LoadConversacionResult>
+  deleteConversation: (id: string, username: string) => Promise<{ ok: boolean }>
   getConfig: () => Promise<AssistantConfig>
   setConfig: (config: AssistantConfig) => Promise<AssistantConfig>
   listModels: () => Promise<string[]>

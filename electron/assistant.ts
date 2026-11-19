@@ -58,6 +58,16 @@ export class Assistant {
     this.messages = [{ role: 'system', content: this.systemPrompt }]
   }
 
+  /** Devuelve una copia de los mensajes (sin el `system`) para persistirlos. */
+  snapshot(): ChatMessage[] {
+    return this.messages.slice(1).map((m) => JSON.parse(JSON.stringify(m)) as ChatMessage)
+  }
+
+  /** Restaura una conversación a partir de mensajes persistidos (sin `system`). */
+  restore(saved: ChatMessage[]): void {
+    this.messages = [{ role: 'system', content: this.systemPrompt }, ...saved]
+  }
+
   async chat(
     userText: string,
     workspaceDir: string,

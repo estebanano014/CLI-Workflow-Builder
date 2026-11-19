@@ -5,10 +5,11 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { OllamaClient, OllamaError } from './ollama'
+import { OllamaClient, OllamaError, type ChatMessage } from './ollama'
 import { Assistant, type ConfirmFn } from './assistant'
 
 let pyProc: ChildProcess | null = null
+let ollamaProc: ChildProcess | null = null
 let port = 0
 let token = ''
 let mainWindow: BrowserWindow | null = null
@@ -111,6 +112,59 @@ function sanitizeConfig(patch: unknown): Partial<AssistantConfig> {
   return out
 }
 
+// ---------------------------------------------------------------------------
+// Historial de conversaciones por usuario (cliwf-ia-conversaciones.json)
+// ---------------------------------------------------------------------------
+
+interface ConversacionGuardada {
+  id: string
+  username: string
+  titulo: string
+  messages: ChatMessage[]
+  createdAt: string
+  updatedAt: string
+}
+
+let currentConversationId: string | null = null
+
+function conversacionesPath(): string {
+  return join(dataDir(), 'cliwf-ia-conversaciones.json')
+}
+
+function loadConversaciones(): ConversacionGuardada[] {
+  try {
+    const raw = JSON.parse(readFileSync(conversacionesPath(), 'utf8')) as { conversations?: ConversacionGuardada[] }
+    return Array.isArray(raw.conversations) ? raw.conversations : []
+  } catch {
+    return []
+  }
+}
+
+function saveConversaciones(list: ConversacionGuardada[]): void {
+  mkdirSync(dataDir(), { recursive: true })
+  writeFileSync(conversacionesPath(), JSON.stringify({ conversations: list }, null, 2), 'utf8')
+}
+
+function guardarConversacion(username: string): void {
+  if (!assistant) return
+  const messages = assistant.snapshot()
+  const titulo = (messages.find((m) => m.role === 'user')?.content || 'Conversación').slice(0, 60)
+  const ahora = new Date().toISOString()
+  const lista = loadConversaciones()
+  if (currentConversationId) {
+    const idx = lista.findIndex((c) => c.id === currentConversationId)
+    if (idx >= 0) {
+      lista[idx] = { ...lista[idx], messages, updatedAt: ahora }
+      saveConversaciones(lista)
+      return
+    }
+  }
+  const id = randomBytes(16).toString('hex')
+  currentConversationId = id
+  lista.unshift({ id, username, titulo, messages, createdAt: ahora, updatedAt: ahora })
+  saveConversaciones(lista)
+}
+
 // Enlace profundo: cliwf://... abre (o enfoca) la app instalada.
 const PROTOCOL = 'cliwf'
 
@@ -147,6 +201,16 @@ function coreDir(): string {
   return app.isPackaged
     ? join(process.resourcesPath, 'python-core')
     : join(app.getAppPath(), 'python-core')
+}
+
+function ollamaDir(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'ollama')
+    : join(app.getAppPath(), 'vendor', 'ollama')
+}
+
+function ollamaExe(): string {
+  return join(ollamaDir(), 'ollama.exe')
 }
 
 function dataDir(): string {
@@ -204,6 +268,57 @@ function stopPython(): void {
     }
     pyProc = null
   }
+}
+
+// ---------------------------------------------------------------------------
+// Ollama (embebido): arranca el servidor portable si no hay uno ya en el puerto.
+// ---------------------------------------------------------------------------
+
+const OLLAMA_URL = 'http://127.0.0.1:11434'
+
+async function ollamaIsRunning(): Promise<boolean> {
+  try {
+    const res = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(1500) })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+function stopOllama(): void {
+  if (ollamaProc && !ollamaProc.killed) {
+    try {
+      ollamaProc.kill()
+    } catch {
+      /* ignorar */
+    }
+    ollamaProc = null
+  }
+}
+
+async function startBundledOllama(): Promise<boolean> {
+  const exe = ollamaExe()
+  if (!existsSync(exe)) return false
+  ollamaProc = spawn(exe, ['serve'], {
+    env: { ...process.env, OLLAMA_HOST: '127.0.0.1:11434' },
+    windowsHide: true,
+    stdio: 'ignore'
+  })
+  ollamaProc.on('error', () => {
+    ollamaProc = null
+  })
+  // Espera hasta 15 s a que el servidor esté listo.
+  for (let i = 0; i < 30; i++) {
+    if (await ollamaIsRunning()) return true
+    await new Promise((r) => setTimeout(r, 500))
+  }
+  return false
+}
+
+async function ensureOllamaRunning(): Promise<void> {
+  // Si ya hay un Ollama (del sistema o embebido) en el puerto, no lanzamos otro.
+  if (await ollamaIsRunning()) return
+  await startBundledOllama()
 }
 
 function createWindow(): void {
@@ -329,6 +444,45 @@ ipcMain.handle('cliWF:assistant-reset', () => {
   return { ok: true }
 })
 
+ipcMain.handle('cliWF:assistant-new-conversation', () => {
+  currentConversationId = null
+  assistant?.reset()
+  return { ok: true }
+})
+
+ipcMain.handle('cliWF:assistant-list-conversations', (_e, username: unknown) => {
+  const u = typeof username === 'string' ? username : ''
+  const lista = loadConversaciones().filter((c) => c.username === u)
+  return lista.map((c) => ({
+    id: c.id,
+    titulo: c.titulo,
+    updatedAt: c.updatedAt,
+    mensajes: c.messages.length
+  }))
+})
+
+ipcMain.handle('cliWF:assistant-load-conversation', (_e, payload: { id?: string; username?: string } | undefined) => {
+  const id = payload?.id
+  const username = payload?.username ?? ''
+  const conv = loadConversaciones().find((c) => c.id === id && c.username === username)
+  if (!conv) return { ok: false, error: 'Conversación no encontrada.' }
+  assistant?.restore(conv.messages)
+  currentConversationId = conv.id
+  return { ok: true, messages: conv.messages }
+})
+
+ipcMain.handle('cliWF:assistant-delete-conversation', (_e, payload: { id?: string; username?: string } | undefined) => {
+  const id = payload?.id
+  const username = payload?.username ?? ''
+  const lista = loadConversaciones().filter((c) => !(c.id === id && c.username === username))
+  saveConversaciones(lista)
+  if (currentConversationId === id) {
+    currentConversationId = null
+    assistant?.reset()
+  }
+  return { ok: true }
+})
+
 ipcMain.handle('cliWF:assistant-confirm', (_e, payload: { id?: string; ok?: boolean } | undefined) => {
   const id = payload?.id
   if (id) {
@@ -341,9 +495,10 @@ ipcMain.handle('cliWF:assistant-confirm', (_e, payload: { id?: string; ok?: bool
   return { ok: true }
 })
 
-ipcMain.handle('cliWF:assistant-chat', async (event, message: unknown) => {
+ipcMain.handle('cliWF:assistant-chat', async (event, payload: { message?: string; username?: string } | undefined) => {
   if (!ollamaClient || !assistant) rebuildAssistant()
-  const text = typeof message === 'string' ? message : ''
+  const text = typeof payload?.message === 'string' ? payload.message : ''
+  const username = typeof payload?.username === 'string' ? payload.username : ''
   if (!text.trim()) return { ok: false, error: 'Mensaje vacío.' }
   if (assistantBusy) return { ok: false, error: 'El asistente ya está procesando otra petición.' }
   assistantBusy = true
@@ -371,6 +526,7 @@ ipcMain.handle('cliWF:assistant-chat', async (event, message: unknown) => {
       confirmFn
     )
     event.sender.send('ollama:done', { text: finalText })
+    if (username) guardarConversacion(username)
     return { ok: true, text: finalText }
   } catch (e) {
     const errMsg = e instanceof OllamaError || e instanceof Error ? e.message : String(e)
@@ -405,6 +561,7 @@ if (!gotTheLock) {
     } catch (err) {
       console.error('No se pudo iniciar el núcleo Python:', err)
     }
+    await ensureOllamaRunning()
     rebuildAssistant()
     createWindow()
 
@@ -415,6 +572,7 @@ if (!gotTheLock) {
 
   app.on('before-quit', () => {
     stopPython()
+    stopOllama()
   })
 
   app.on('window-all-closed', () => {

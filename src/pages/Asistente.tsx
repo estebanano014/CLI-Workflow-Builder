@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import Swal from 'sweetalert2'
-import type { AssistantConfig } from '@/vite-env'
-import { uid } from '@/lib/utils'
+import { useApp } from '@/context/AppContext'
+import type { AssistantConfig, ConversacionResumen, MensajeConversacion } from '@/vite-env'
+import { formatearFecha, uid } from '@/lib/utils'
 
 interface Mensaje {
   id: string
@@ -10,6 +11,7 @@ interface Mensaje {
 }
 
 export default function Asistente() {
+  const { username } = useApp()
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [streaming, setStreaming] = useState('')
   const [input, setInput] = useState('')
@@ -19,9 +21,20 @@ export default function Asistente() {
   const [modelos, setModelos] = useState<string[]>([])
   const [config, setConfig] = useState<AssistantConfig | null>(null)
   const [mostrarConfig, setMostrarConfig] = useState(false)
+  const [conversaciones, setConversaciones] = useState<ConversacionResumen[]>([])
+  const [mostrarHistorial, setMostrarHistorial] = useState(false)
   const finalRef = useRef<HTMLDivElement>(null)
 
   const bridge = window.cliWF?.assistant
+
+  const cargarHistorial = async () => {
+    if (!bridge || !username) return
+    try {
+      setConversaciones(await bridge.listConversations(username))
+    } catch {
+      /* sin historial */
+    }
+  }
 
   // Suscripción a eventos del asistente (una sola vez).
   useEffect(() => {
@@ -73,6 +86,7 @@ export default function Asistente() {
         /* sin config */
       }
       await refrescarSalud()
+      await cargarHistorial()
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bridge])
@@ -114,7 +128,7 @@ export default function Asistente() {
     setStreaming('')
     setTool(null)
     try {
-      const res = await bridge.chat(texto)
+      const res = await bridge.chat({ message: texto, username: username ?? undefined })
       if (!res.ok && res.error) {
         const mensajeError = res.error
         setMensajes((prev) => [...prev, { id: uid(), rol: 'error', texto: mensajeError }])
@@ -123,14 +137,54 @@ export default function Asistente() {
       setMensajes((prev) => [...prev, { id: uid(), rol: 'error', texto: e instanceof Error ? e.message : String(e) }])
     } finally {
       setBusy(false)
+      void cargarHistorial()
     }
   }
 
   const nuevaConversacion = async () => {
-    await bridge?.reset()
+    if (!bridge) return
+    await bridge.newConversation()
     setMensajes([])
     setStreaming('')
     setTool(null)
+    await cargarHistorial()
+  }
+
+  const cargarConversacion = async (id: string) => {
+    if (!bridge || !username) return
+    try {
+      const res = await bridge.loadConversation(id, username)
+      if (!res.ok || !res.messages) {
+        await Swal.fire({ title: 'Error', text: res.error ?? 'No se pudo cargar la conversación.', icon: 'error' })
+        return
+      }
+      setMensajes(mensajesADisplay(res.messages))
+      setStreaming('')
+      setTool(null)
+    } catch (e) {
+      await Swal.fire({ title: 'Error', text: e instanceof Error ? e.message : String(e), icon: 'error' })
+    }
+  }
+
+  const borrarConversacion = async (id: string) => {
+    if (!bridge || !username) return
+    const res = await Swal.fire({
+      title: 'Eliminar conversación',
+      text: 'Esta conversación se borrará definitivamente.',
+      icon: 'warning',
+      iconColor: 'var(--color-error)',
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: 'var(--color-error)',
+      reverseButtons: true
+    })
+    if (!res.isConfirmed) return
+    await bridge.deleteConversation(id, username)
+    setMensajes([])
+    setStreaming('')
+    setTool(null)
+    await cargarHistorial()
   }
 
   if (!bridge) {
@@ -160,14 +214,49 @@ export default function Asistente() {
             <i className={`fa-solid ${online ? 'fa-circle-check' : 'fa-triangle-exclamation'}`} aria-hidden="true" />{' '}
             {online ? 'Conectado' : 'Sin conexión'}
           </span>
+          <button type="button" className="btn btn-sm" onClick={() => setMostrarHistorial((v) => !v)} aria-expanded={mostrarHistorial}>
+            <i className="fa-solid fa-clock-rotate-left" aria-hidden="true" /> Historial
+          </button>
           <button type="button" className="btn btn-sm" onClick={() => setMostrarConfig((v) => !v)} aria-expanded={mostrarConfig}>
             <i className="fa-solid fa-gear" aria-hidden="true" /> Configuración
           </button>
           <button type="button" className="btn btn-sm" onClick={() => void nuevaConversacion()}>
-            <i className="fa-solid fa-rotate-left" aria-hidden="true" /> Nueva conversación
+            <i className="fa-solid fa-plus" aria-hidden="true" /> Nueva
           </button>
         </div>
       </section>
+
+      {mostrarHistorial && (
+        <section className="card" style={{ marginBottom: 16 }}>
+          <h3 style={{ marginTop: 0 }}>Historial de conversaciones</h3>
+          {conversaciones.length === 0 ? (
+            <p className="muted widget-empty">Aún no tienes conversaciones guardadas.</p>
+          ) : (
+            <ul className="mini-list">
+              {conversaciones.map((c) => (
+                <li key={c.id}>
+                  <div className="row">
+                    <button type="button" className="mini-item" style={{ flex: 1 }} onClick={() => void cargarConversacion(c.id)}>
+                      <i className="fa-solid fa-comment" style={{ color: 'var(--color-primary)' }} aria-hidden="true" />
+                      <span className="mini-name">{c.titulo}</span>
+                      <span className="mini-date muted">{formatearFecha(c.updatedAt)}</span>
+                      <span className="badge">{c.mensajes}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger"
+                      onClick={() => void borrarConversacion(c.id)}
+                      aria-label={`Eliminar conversación ${c.titulo}`}
+                    >
+                      <i className="fa-solid fa-trash" aria-hidden="true" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {mostrarConfig && config && (
         <section className="card" style={{ marginBottom: 16 }}>
@@ -291,4 +380,10 @@ export default function Asistente() {
       </section>
     </div>
   )
+}
+
+function mensajesADisplay(msgs: MensajeConversacion[]): Mensaje[] {
+  return msgs
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .map((m) => ({ id: uid(), rol: m.role === 'user' ? 'usuario' : 'asistente', texto: m.content }))
 }

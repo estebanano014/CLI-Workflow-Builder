@@ -13,8 +13,14 @@ contextBridge.exposeInMainWorld('cliWF', {
   homeDir: () => ipcRenderer.invoke('cliWF:homeDir'),
   platform: process.platform,
   assistant: {
-    chat: (message: string) => ipcRenderer.invoke('cliWF:assistant-chat', message),
+    chat: (payload: { message: string; username?: string }) => ipcRenderer.invoke('cliWF:assistant-chat', payload),
     reset: () => ipcRenderer.invoke('cliWF:assistant-reset'),
+    newConversation: () => ipcRenderer.invoke('cliWF:assistant-new-conversation'),
+    listConversations: (username: string) => ipcRenderer.invoke('cliWF:assistant-list-conversations', username),
+    loadConversation: (id: string, username: string) =>
+      ipcRenderer.invoke('cliWF:assistant-load-conversation', { id, username }),
+    deleteConversation: (id: string, username: string) =>
+      ipcRenderer.invoke('cliWF:assistant-delete-conversation', { id, username }),
     getConfig: () => ipcRenderer.invoke('cliWF:assistant-get-config'),
     setConfig: (config: Record<string, unknown>) => ipcRenderer.invoke('cliWF:assistant-set-config', config),
     listModels: () => ipcRenderer.invoke('cliWF:assistant-models'),

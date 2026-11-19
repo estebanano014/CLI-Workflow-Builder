@@ -16,6 +16,8 @@ extraResources:
     to: python-core
   - from: vendor/python
     to: python
+  - from: vendor/ollama
+    to: ollama
 win:
   icon: build/icon.ico
   target:
