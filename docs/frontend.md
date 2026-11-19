@@ -282,7 +282,10 @@ Definidos en `:root` (en `src/styles/themes.css`) y reutilizados en `src/styles/
   responde por `cliWF:assistant-confirm`.
 - **Cabecera de estado:** punto de conexión (Conectado/Sin conexión) + modelo
   activo, botón "Configuración" (panel colapsable con URL, modelo con
-  autocompletado, temperatura, contexto y directorio de trabajo) y "Nueva
-  conversación".
+  autocompletado, temperatura, contexto y directorio de trabajo), botón
+  "Historial" y "Nueva".
+- **Historial por usuario:** panel colapsable con las conversaciones guardadas del
+  usuario (título, fecha y número de mensajes). Permite cargar una conversación
+  (restaura los mensajes en pantalla) o borrarla (con confirmación SweetAlert2).
 - **Accesibilidad:** el área de mensajes se desplaza automáticamente al final; el
   input tiene `aria-label` y Enter envía (Shift+Enter no).

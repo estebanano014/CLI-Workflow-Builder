@@ -204,6 +204,19 @@ para interpretar lenguaje natural y ejecutar acciones reales. Todo vive en el
   defecto `qwen2.5:7b`).
 - **Registro:** cada ejecución de herramienta se añade a `cliwf-ia.log` (JSON lines
   con timestamp, herramienta, argumentos, resultado y confirmación).
+- **Ollama embebido:** el binario portable de Ollama se empaqueta en
+  `resources/ollama` (vía `extraResources` en `electron-builder.yml`, descargado con
+  `scripts/fetch-ollama.ps1`). Al arrancar, `ensureOllamaRunning()` comprueba si ya
+  hay un servidor en `127.0.0.1:11434`; si no, lanza `ollama.exe serve` (con
+  `OLLAMA_HOST` fijado a loopback) y espera a que responda. Al cerrar la app se
+  detiene el proceso embebido. Los modelos se comparten con la instalación del
+  sistema (`~/.ollama/models`), así que no hay que re-descargarlos.
+- **Historial de conversaciones:** las conversaciones se persisten por usuario en
+  `cliwf-ia-conversaciones.json` (id, usuario, título, mensajes y fechas). El
+  orquestador expone `snapshot()`/`restore()` y los handlers IPC
+  `assistant-list/load/delete/new-conversation` permiten retomar, listar y borrar
+  conversaciones. Se guarda tras cada intercambio (sin el mensaje `system`, que se
+  reinyecta al restaurar).
 - **Modelo de amenaza:** el asistente hereda el alcance de la terminal (ejecuta
   comandos reales y lee/escribe archivos confinados al directorio de trabajo) y
   queda detrás de la autenticación local. Las acciones irreversibles piden

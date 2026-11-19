@@ -4,6 +4,22 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
+## [0.0.5] - 2026-11-19
+
+### Añadido
+- **Ollama embebido:** el binario portable de Ollama se empaqueta con la app
+  (`extraResources` → `resources/ollama`, script `scripts/fetch-ollama.ps1`). Al
+  abrir el Asistente, la app arranca `ollama.exe serve` si no detecta un servidor
+  ya en marcha en `127.0.0.1:11434`, y lo detiene al cerrar. Los modelos se
+  comparten con la instalación del sistema (`~/.ollama/models`).
+- **Historial de conversaciones por usuario:** las conversaciones se guardan
+  automáticamente en `cliwf-ia-conversaciones.json` (por usuario), con título
+  automático y mensajes. Panel "Historial" en el Asistente para retomar, cambiar o
+  borrar conversaciones (confirmación SweetAlert2).
+
+### Cambiado
+- Versión de la aplicación a `0.0.5` (`package.json`, `package-lock.json` y `APP_VERSION`).
+
 ## [0.0.4] - 2026-11-19
 
 ### Añadido

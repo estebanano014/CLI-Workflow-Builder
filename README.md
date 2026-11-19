@@ -86,9 +86,11 @@ ejecutar tests.
 
 ### Requisitos
 
-1. Instala [Ollama](https://ollama.com/download) e inícialo (`ollama serve` o la
-   app de escritorio).
-2. Descarga un modelo con soporte de *tool/function calling*. Recomendados:
+**Ollama ya viene empaquetado con la app** (no necesitas instalarlo aparte): al
+abrir el Asistente, la app arranca su propio servidor Ollama portable si no detecta
+uno ya en marcha. Solo necesitas:
+
+1. Descargar un modelo con soporte de *tool/function calling* (una sola vez):
 
    ```bash
    ollama pull qwen2.5:7b      # 7B, excelente en español y tool calling (por defecto)
@@ -96,6 +98,11 @@ ejecutar tests.
    ollama pull llama3.1        # 8B, alternativa muy usada
    ollama pull qwen2.5:3b      # 3B, ligero para equipos modestos
    ```
+
+   También puedes descargar el modelo desde la app instalada (el ejecutable
+   `ollama.exe` se incluye en la instalación) o usar tu instalación de Ollama si ya
+   la tienes: la app detecta si hay un servidor en `localhost:11434` y, si existe,
+   lo usa en lugar del propio.
 
 ### Configuración
 
@@ -122,11 +129,13 @@ También puedes usar variables de entorno como valores por defecto:
 - **Código:** explicar, revisar y refactorizar.
 - **Tests:** ejecutar los tests de Python y el typecheck del frontend.
 - **Resumen del proyecto:** estado del repositorio y cambios recientes.
+- **Historial de conversaciones:** se guarda automáticamente por usuario y puedes
+  retomar, cambiar o borrar conversaciones anteriores desde el panel "Historial".
 
 Las acciones destructivas o irreversibles (`push --force`, `reset --hard`, borrar
 ramas, descartar cambios, sobrescribir archivos) **piden confirmación** antes de
-ejecutarse. Todas las acciones quedan registradas en `cliwf-ia.log` (carpeta de
-datos).
+ejecutarse. Todas las acciones quedan registradas en `cliwf-ia.log` y las
+conversaciones en `cliwf-ia-conversaciones.json` (carpeta de datos).
 
 ## Documentación
 
