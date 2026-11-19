@@ -26,7 +26,9 @@ Al abrir la app por primera vez verás **Crear cuenta**. Elige un usuario y una 
 
 ### 3. Buscar un comando
 
-Entra en **Biblioteca** (menú lateral) y escribe en el buscador por *acción*, *comando* o *palabra clave*. Ejemplos:
+Al iniciar sesión, la app abre directamente en la **Biblioteca** (también accesible
+desde el menú lateral). Escribe en el buscador por *acción*, *comando* o *palabra
+clave*. Ejemplos:
 
 - `"subir cambios"` → el comando para subir al repositorio de GitHub.
 - `"grep"` o `"buscar texto"` → cómo buscar texto dentro de archivos.
@@ -45,6 +47,9 @@ Cada comando tiene un botón **Copiar**. En el **Modo Ejecución** de una Ruta, 
 - **Rutas:** secuencias de comandos con variantes por SO, variables `{{x}}` y vista previa.
 - **Modo Ejecución:** avanza paso a paso con barra de progreso y atajos de teclado (`→`, `←`, `C`, `R`, `Esc`).
 - **Recetas:** descompón problemas en pasos con checklist.
+- **Progreso:** historial de ejecuciones, rachas (días seguidos) y calendario de actividad, para convertir la práctica en un hábito.
+- **Terminal integrada:** ejecuta comandos reales en tu equipo, con modo seguro (lista blanca) por defecto y confirmación ante comandos peligrosos.
+- **Dashboard:** panel de resumen y widgets colapsables (Resumen, Progreso, Plantillas, Acciones rápidas, Recientes, Favoritos, Pendientes, Etiquetas, Ajustes y Seguridad).
 - **Temas:** 10 temas (6 base × claro/oscuro + 4 de daltonismo), con el tema **Terminal** (monoespaciado, acento cian/verde) por defecto.
 - **Importar / Exportar** tu archivo de datos.
 - **Cuenta local:** registro y login offline (una sola cuenta por equipo).
@@ -69,6 +74,17 @@ Para tener una URL pública con un botón, se incluye una página de lanzamiento
 3. Despliega. El botón "Abrir la aplicación" usará `cliwf://`.
 
 Nota: el enlace solo funciona en el equipo donde la app esté instalada.
+
+## Documentación
+
+- `docs/SRS.md` — Especificación de requisitos (resumen de una página).
+- `docs/srs/IEEE-830.md` — Especificación de requisitos completa conforme a
+  IEEE 830-1998 (introducción, descripción general, requisitos específicos,
+  diagramas y matriz de trazabilidad, todo en un solo documento).
+- `docs/architecture.md` — Decisiones de arquitectura (Electron + Python + API local).
+- `docs/api-contract.md` — Contratos de la API local.
+- `docs/frontend.md` — Decisiones de UI (temas, Font Awesome local, SweetAlert2, semántica).
+- `docs/changelog.md` — Registro de cambios.
 
 ## Contribuir
 

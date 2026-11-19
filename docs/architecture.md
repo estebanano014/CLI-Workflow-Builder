@@ -95,6 +95,17 @@ Si se requiere confidencialidad real de los datos en disco, habría que cifrar
 - `Variante`: `{id, so, comando, nota, esAlternativo}` con `so ∈ {windows, linux, macos, any}`.
 - `Receta`: `{id, titulo, descripcion, entrada, salida, etiquetas, favorito, pasos[{id, texto}]}`.
 - `Ajustes`: `{variablesGlobales[], soPreferido}`.
+- `Registro de historial`: `{id, tipo, refId, nombre, pasosHechos, pasosTotal, duracionMs, fecha}`. Solo metadatos: nunca comandos resueltos ni valores de variables (RNF-009).
+
+**Historial y estadísticas:**
+- `schemaVersion` del JSON de dominio es `2` desde la v0.0.3 (v1 → v2 se migra
+  automáticamente al cargar, añadiendo `historial: []`).
+- Las rachas y agregados se calculan en `app/estadisticas.py` (funciones puras),
+  no se persisten derivados; se derivan del historial en cada petición a
+  `/v1/estadisticas`.
+- `lastRunAt` sigue siendo el único dato de ejecución que se persiste en cada
+  Ruta/Receta (RF-029); el historial añade el registro temporal de actividad sin
+  sustituirlo.
 
 **Decisiones de diseño (no en el SRS):**
 - Las variables de paso se **detectan** de los comandos (`{{x}}`) y sus valores por defecto se declaran a nivel de Ruta (`ruta.variables`). Precedencia: variable de paso > variable global.
@@ -138,3 +149,30 @@ Si se requiere confidencialidad real de los datos en disco, habría que cifrar
 - `landing/index.html` es una página estática opcional (sin dependencias) para
   publicar el enlace en un host estático (p. ej. Vercel). No forma parte de la
   aplicación ni afecta su funcionamiento offline.
+
+## Terminal integrado (ejecución real)
+
+La vista "Terminal" ejecuta comandos **reales** en el equipo. Decisión de diseño
+clave: la ejecución vive en el **proceso principal de Electron** (no en el núcleo
+Python ni en el renderer), porque `child_process` de Node es la vía natural para
+lanzar procesos con timeout y capturar salida, y mantiene el núcleo Python
+enfocado en dominio + persistencia + API.
+
+- **Flujo:** renderer → IPC `cliWF:ejecutar` (preload con `contextBridge`) →
+  `ipcMain.handle` → `child_process.exec` en una shell del sistema (CMD o
+  `/bin/sh`), con directorio de trabajo, `timeout` (30 s por defecto, máx. 120 s),
+  `maxBuffer` de 1 MB y `windowsHide`.
+- **Guardarraíles (en el renderer, `lib/terminal.ts`):**
+  1. *Modo seguro* activo por defecto: lista blanca de comandos de consulta
+     (`git status`, `ls`, `whoami`, `ping`, `node --version`, …). Cualquier otro
+     comando se bloquea con un mensaje.
+  2. *Detección de peligrosos*: patrones heurísticos (`rm -rf`, `del /s`, `format`,
+     `git reset --hard`, `drop table`, …) piden confirmación antes de ejecutar.
+  3. *Aviso permanente* de "terminal real" y timeout que cancela procesos colgados.
+- **Modelo de amenaza:** la vista Terminal es la única que ejecuta comandos reales
+  (las Rutas siguen siendo solo copiar/pegar, RF-025). Queda detrás de la
+  autenticación local y su alcance es el del usuario de Windows. No se integra
+  con el historial ni con la persistencia (la salida solo vive en pantalla).
+- **Limitaciones conocidas:** cada comando corre en una shell nueva (sin estado
+  entre ejecuciones); `cd` no persiste el directorio entre comandos. El cwd se
+  edita manualmente y por defecto es la carpeta de usuario.

@@ -63,7 +63,7 @@ Todos los siguientes exigen **transporte + sesión**.
 `GET /v1/salud` (solo transporte, sin sesión)
 
 ```json
-{ "ok": true, "schemaVersion": 1 }
+{ "ok": true, "schemaVersion": 2 }
 ```
 
 ### Rutas
@@ -107,10 +107,60 @@ Validación: `titulo` obligatorio y único (duplicado → `409`).
 `POST /v1/import` con cuerpo:
 
 ```json
-{ "schemaVersion": 1, "rutas": [], "recetas": [], "ajustes": { "variablesGlobales": [], "soPreferido": "windows" } }
+{
+  "schemaVersion": 2,
+  "rutas": [],
+  "recetas": [],
+  "historial": [],
+  "ajustes": { "variablesGlobales": [], "soPreferido": "windows" }
+}
 ```
 
 Respuesta: `{ "importados": { "rutas": 2, "recetas": 1 } }`. Estructura inválida → `400`.
+`historial` es opcional en la importación (si falta, se inicializa vacío).
+
+### Historial y estadísticas
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/v1/historial` | Lista el historial (más recientes primero) → `{ "historial": [...] }`. Admite `?limit=N` |
+| `POST` | `/v1/historial` | Registra una entrada → `201 { "registro": {...} }` |
+| `DELETE` | `/v1/historial` | Vacía todo el historial → `204` |
+| `DELETE` | `/v1/historial/{id}` | Borra una entrada concreta → `204` |
+| `GET` | `/v1/estadisticas` | Agregados y rachas → `{ "estadisticas": {...} }` |
+
+Cuerpo de `POST /v1/historial` (los campos `id` y `fecha` los genera el núcleo):
+
+```json
+{
+  "tipo": "ruta",
+  "refId": "abc",
+  "nombre": "Desplegar",
+  "pasosHechos": 3,
+  "pasosTotal": 3,
+  "duracionMs": 120000
+}
+```
+
+Respuesta de `GET /v1/estadisticas`:
+
+```json
+{
+  "totalEjecuciones": 12,
+  "rutasEjecutadas": 8,
+  "recetasCompletadas": 4,
+  "pasosCompletados": 41,
+  "diasActivos": 6,
+  "racha": 3,
+  "rachaMaxima": 5,
+  "porDia": [{ "fecha": "2026-11-19", "count": 2 }],
+  "ultimaFecha": "2026-11-19"
+}
+```
+
+`porDia` cubre los últimos 371 días y solo incluye días con actividad. Por
+privacidad (RNF-009) el historial **no** almacena comandos resueltos ni valores de
+variables.
 
 ## Formas de los objetos
 
@@ -162,6 +212,21 @@ Respuesta: `{ "importados": { "rutas": 2, "recetas": 1 } }`. Estructura inválid
 
 ```json
 { "variablesGlobales": [{ "nombre": "usuario", "valor": "admin" }], "soPreferido": "windows" }
+```
+
+### Registro de historial
+
+```json
+{
+  "id": "abc",
+  "tipo": "ruta",
+  "refId": "ruta-id",
+  "nombre": "Desplegar",
+  "pasosHechos": 3,
+  "pasosTotal": 3,
+  "duracionMs": 120000,
+  "fecha": "2026-11-19T10:00:00+00:00"
+}
 ```
 
 ## Códigos de error
