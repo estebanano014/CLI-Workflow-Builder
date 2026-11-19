@@ -91,7 +91,7 @@ class TestApi(unittest.TestCase):
 
     def test_import_export(self):
         payload = {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "rutas": [{"nombre": "a"}, {"nombre": "b"}],
             "recetas": [{"titulo": "r1"}],
             "ajustes": {"variablesGlobales": [], "soPreferido": "linux"},
@@ -108,6 +108,31 @@ class TestApi(unittest.TestCase):
     def test_import_estructura_invalida_400(self):
         status, _ = _req(self.port, TOKEN, "POST", "/v1/import", {"foo": "bar"}, session=self.session)
         self.assertEqual(status, 400)
+
+    def test_historial_y_estadisticas(self):
+        # Limpiar historial para partir de un estado conocido.
+        _req(self.port, TOKEN, "DELETE", "/v1/historial", session=self.session)
+
+        status, body = _req(
+            self.port, TOKEN, "POST", "/v1/historial",
+            {"tipo": "ruta", "refId": "r1", "nombre": "Desplegar", "pasosHechos": 3, "pasosTotal": 3},
+            session=self.session,
+        )
+        self.assertEqual(status, 201)
+        self.assertIn("id", body["registro"])
+
+        status, body = _req(self.port, TOKEN, "GET", "/v1/historial", session=self.session)
+        self.assertEqual(status, 200)
+        self.assertEqual(len(body["historial"]), 1)
+
+        status, body = _req(self.port, TOKEN, "GET", "/v1/estadisticas", session=self.session)
+        self.assertEqual(status, 200)
+        self.assertEqual(body["estadisticas"]["totalEjecuciones"], 1)
+        self.assertEqual(body["estadisticas"]["pasosCompletados"], 3)
+
+    def test_historial_sin_sesion_401(self):
+        status, _ = _req(self.port, TOKEN, "GET", "/v1/historial")
+        self.assertEqual(status, 401)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from app.auth import (
     LOCKOUT_SECONDS,
@@ -29,6 +29,7 @@ from app.auth import (
     validar_password,
     verify_password,
 )
+from app.estadisticas import calcular_estadisticas
 from app.persistence import AuthStore, Store
 
 HOST = "127.0.0.1"
@@ -94,6 +95,27 @@ def _normalize_receta(receta):
     return receta
 
 
+def _normalize_historial(reg):
+    """Normaliza un registro de historial (solo metadatos, sin comandos resueltos)."""
+    reg.setdefault("id", _nuevo_id())
+    reg.setdefault("tipo", "ruta")
+    reg.setdefault("refId", None)
+    reg.setdefault("nombre", "")
+    reg.setdefault("pasosHechos", 0)
+    reg.setdefault("pasosTotal", 0)
+    reg.setdefault("duracionMs", 0)
+    reg.setdefault("fecha", _iso_now())
+    try:
+        reg["pasosHechos"] = int(reg.get("pasosHechos") or 0)
+        reg["pasosTotal"] = int(reg.get("pasosTotal") or 0)
+        reg["duracionMs"] = int(reg.get("duracionMs") or 0)
+    except (TypeError, ValueError):
+        reg["pasosHechos"] = 0
+        reg["pasosTotal"] = 0
+        reg["duracionMs"] = 0
+    return reg
+
+
 def make_handler(store, auth_store, token):
     sessions = SessionManager()
 
@@ -155,6 +177,12 @@ def make_handler(store, auth_store, token):
                 return recurso, ident
             return None, None
 
+        def _sin_contenido(self):
+            self.send_response(204)
+            self._cors()
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
         # ---------- despacho ----------
         def do_OPTIONS(self):
             # Preflight CORS: no exige token (el navegador no lo envía en OPTIONS).
@@ -189,6 +217,10 @@ def make_handler(store, auth_store, token):
                 return self._json({"recetas": store.data["recetas"]})
             if recurso == "ajustes":
                 return self._json({"ajustes": store.data["ajustes"]})
+            if recurso == "historial":
+                return self._listar_historial()
+            if recurso == "estadisticas":
+                return self._json({"estadisticas": calcular_estadisticas(store.data["historial"])})
             if recurso == "export":
                 return self._json(store.data)
             return self._json({"detail": "No encontrado"}, 404)
@@ -206,6 +238,8 @@ def make_handler(store, auth_store, token):
                 return self._crear_ruta(body)
             if recurso == "recetas":
                 return self._crear_receta(body)
+            if recurso == "historial":
+                return self._registrar_historial(body)
             if recurso == "import":
                 return self._importar(body)
             return self._json({"detail": "No encontrado"}, 404)
@@ -235,6 +269,12 @@ def make_handler(store, auth_store, token):
                 return self._borrar(store.data["rutas"], ident, "Ruta")
             if recurso == "recetas":
                 return self._borrar(store.data["recetas"], ident, "Receta")
+            if recurso == "historial":
+                if ident:
+                    return self._borrar(store.data["historial"], ident, "Registro")
+                store.data["historial"] = []
+                store.save()
+                return self._sin_contenido()
             return self._json({"detail": "No encontrado"}, 404)
 
         # ---------- autenticación ----------
@@ -416,16 +456,39 @@ def make_handler(store, auth_store, token):
             store.save()
             return self._json({"ajustes": ajustes})
 
+        def _listar_historial(self):
+            query = parse_qs(urlsplit(self.path).query)
+            limite = None
+            if "limit" in query:
+                try:
+                    limite = int(query["limit"][0])
+                except (TypeError, ValueError):
+                    limite = None
+            ordenada = sorted(
+                store.data["historial"],
+                key=lambda r: r.get("fecha") or "",
+                reverse=True,
+            )
+            if limite is not None and limite > 0:
+                ordenada = ordenada[:limite]
+            return self._json({"historial": ordenada})
+
+        def _registrar_historial(self, body):
+            reg = body.get("registro") if isinstance(body, dict) and "registro" in body else body
+            if not isinstance(reg, dict):
+                return self._json({"detail": "Cuerpo inválido"}, 400)
+            reg = _normalize_historial(reg)
+            store.data["historial"].append(reg)
+            store.save()
+            return self._json({"registro": reg}, 201)
+
         def _borrar(self, lista, ident, nombre_tipo):
             idx = next((i for i, item in enumerate(lista) if item["id"] == ident), None)
             if idx is None:
                 return self._json({"detail": f"{nombre_tipo} no encontrada"}, 404)
             del lista[idx]
             store.save()
-            self.send_response(204)
-            self._cors()
-            self.send_header("Content-Length", "0")
-            self.end_headers()
+            self._sin_contenido()
 
         def _importar(self, body):
             if not isinstance(body, dict):
@@ -434,16 +497,27 @@ def make_handler(store, auth_store, token):
                 return self._json({"detail": "El archivo no tiene la estructura esperada"}, 400)
             rutas = body.get("rutas", [])
             recetas = body.get("recetas", [])
+            historial = body.get("historial", [])
+            if not isinstance(historial, list):
+                historial = []
             for r in rutas:
                 _normalize_ruta(r)
             for r in recetas:
                 _normalize_receta(r)
+            for h in historial:
+                _normalize_historial(h)
             ajustes = body.get("ajustes", {})
             if not isinstance(ajustes, dict):
                 ajustes = {}
             ajustes.setdefault("variablesGlobales", [])
             ajustes.setdefault("soPreferido", "windows")
-            store.data = {"schemaVersion": 1, "rutas": rutas, "recetas": recetas, "ajustes": ajustes}
+            store.data = {
+                "schemaVersion": 2,
+                "rutas": rutas,
+                "recetas": recetas,
+                "historial": historial,
+                "ajustes": ajustes,
+            }
             store.save()
             return self._json({"importados": {"rutas": len(rutas), "recetas": len(recetas)}})
 

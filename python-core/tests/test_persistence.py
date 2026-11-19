@@ -20,9 +20,21 @@ class TestPersistence(unittest.TestCase):
 
     def test_crear_vacio(self):
         s = Store(self.path)
-        self.assertEqual(s.data["schemaVersion"], 1)
+        self.assertEqual(s.data["schemaVersion"], 2)
         self.assertEqual(s.data["rutas"], [])
+        self.assertEqual(s.data["historial"], [])
         self.assertFalse(os.path.exists(self.path))  # no escribe al cargar
+
+    def test_migracion_v1_a_v2(self):
+        # Un archivo v1 (sin historial) se normaliza a v2 con historial vacío.
+        with open(self.path, "w", encoding="utf-8") as f:
+            json.dump(
+                {"schemaVersion": 1, "rutas": [], "recetas": [], "ajustes": {"variablesGlobales": [], "soPreferido": "windows"}},
+                f,
+            )
+        s = Store(self.path)
+        self.assertEqual(s.data["schemaVersion"], 2)
+        self.assertEqual(s.data["historial"], [])
 
     def test_save_escribe_y_hace_backup(self):
         s = Store(self.path)

@@ -61,26 +61,31 @@ class AtomicJsonStore:
 
 
 class Store(AtomicJsonStore):
-    """Gestiona `datos_flujos.json` (dominio: rutas, recetas, ajustes)."""
+    """Gestiona `datos_flujos.json` (dominio: rutas, recetas, ajustes, historial)."""
 
     def _default(self):
         return {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "rutas": [],
             "recetas": [],
+            "historial": [],
             "ajustes": {"variablesGlobales": [], "soPreferido": "windows"},
         }
 
     def _normalize(self, data):
         if not isinstance(data, dict):
             raise ValueError("el archivo no contiene un objeto JSON")
-        data.setdefault("schemaVersion", 1)
         data.setdefault("rutas", [])
         data.setdefault("recetas", [])
+        data.setdefault("historial", [])
+        if not isinstance(data.get("historial"), list):
+            data["historial"] = []
         if not isinstance(data.get("ajustes"), dict):
             data["ajustes"] = copy.deepcopy(self._default()["ajustes"])
         data["ajustes"].setdefault("variablesGlobales", [])
         data["ajustes"].setdefault("soPreferido", "windows")
+        # Migración silenciosa a la versión vigente del esquema (v2 añade historial).
+        data["schemaVersion"] = 2
         return data
 
 
