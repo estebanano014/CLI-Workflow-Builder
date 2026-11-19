@@ -1,6 +1,44 @@
 import { getApi } from '@/lib/api'
+import { copiarAlPortapapeles } from '@/lib/clipboard'
 import Swal from 'sweetalert2'
 import type { StoreData } from '@/lib/types'
+
+/** Descarga un texto como archivo (Blob + ancla), sin dependencias. */
+export function descargarArchivo(nombre: string, contenido: string, mime: string): void {
+  const blob = new Blob([contenido], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nombre
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+/** Descarga un contenido Markdown con feedback SweetAlert2. */
+export async function exportarMarkdown(nombre: string, contenido: string): Promise<void> {
+  descargarArchivo(nombre, contenido, 'text/markdown;charset=utf-8')
+  await Swal.fire({
+    title: 'Exportado',
+    text: 'El archivo Markdown se descargó correctamente.',
+    icon: 'success',
+    timer: 1800,
+    showConfirmButton: false
+  })
+}
+
+/** Copia un contenido Markdown al portapapeles con feedback SweetAlert2. */
+export async function copiarComoMarkdown(contenido: string, descripcion: string): Promise<void> {
+  const ok = await copiarAlPortapapeles(contenido)
+  await Swal.fire({
+    title: ok ? 'Copiado' : 'No se pudo copiar',
+    text: ok ? `${descripcion} copiado como Markdown.` : 'Revisa el portapapeles e inténtalo de nuevo.',
+    icon: ok ? 'success' : 'error',
+    timer: 1600,
+    showConfirmButton: false
+  })
+}
 
 export async function exportarDatos(): Promise<void> {
   const api = await getApi()
@@ -24,7 +62,7 @@ export async function exportarDatos(): Promise<void> {
   })
 }
 
-export async function importarDatos(archivo: File): Promise<void> {
+export async function importarDatos(archivo: File): Promise<StoreData | null> {
   const texto = await archivo.text()
   let data: StoreData
   try {
@@ -47,7 +85,7 @@ export async function importarDatos(archivo: File): Promise<void> {
     confirmButtonColor: 'var(--color-warning)',
     reverseButtons: true
   })
-  if (!confirm.isConfirmed) return
+  if (!confirm.isConfirmed) return null
 
   const api = await getApi()
   const res = await api.importData(data)
@@ -56,4 +94,5 @@ export async function importarDatos(archivo: File): Promise<void> {
     text: `Se importaron ${res.importados.rutas} rutas y ${res.importados.recetas} recetas.`,
     icon: 'success'
   })
+  return data
 }

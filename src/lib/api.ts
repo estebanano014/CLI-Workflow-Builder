@@ -1,4 +1,4 @@
-import type { Ajustes, Ruta, Receta, StoreData } from '@/lib/types'
+import type { Ajustes, EjecucionRegistro, Estadisticas, Ruta, Receta, StoreData } from '@/lib/types'
 import type { ConnectionInfo } from '@/vite-env'
 
 export class ApiError extends Error {
@@ -101,6 +101,14 @@ export class ApiClient {
   getAjustes = () => this.req<{ ajustes: Ajustes }>('/v1/ajustes')
   updateAjustes = (ajustes: Ajustes) =>
     this.req<{ ajustes: Ajustes }>('/v1/ajustes', { method: 'PUT', body: JSON.stringify(ajustes) })
+
+  // --- Historial y estadísticas ---
+  listHistorial = (limit?: number) =>
+    this.req<{ historial: EjecucionRegistro[] }>(`/v1/historial${limit ? `?limit=${limit}` : ''}`)
+  addHistorial = (registro: Omit<EjecucionRegistro, 'id' | 'fecha'>) =>
+    this.req<{ registro: EjecucionRegistro }>('/v1/historial', { method: 'POST', body: JSON.stringify(registro) })
+  clearHistorial = () => this.req<void>('/v1/historial', { method: 'DELETE' })
+  getEstadisticas = () => this.req<{ estadisticas: Estadisticas }>('/v1/estadisticas')
 
   // --- Import/Export ---
   exportData = () => this.req<StoreData>('/v1/export')

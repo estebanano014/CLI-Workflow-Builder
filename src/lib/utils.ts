@@ -1,5 +1,8 @@
 import type { Ajustes, Paso, Ruta, Receta, SO, Variante } from '@/lib/types'
 
+/** Versión mostrada en la interfaz (se mantiene en sincronía con package.json). */
+export const APP_VERSION = '0.0.3'
+
 export function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID()
@@ -112,6 +115,15 @@ export function varianteParaSO(paso: Paso, soPreferido: SO): Variante | undefine
     paso.variantes.find((v) => v.so === 'any') ??
     paso.variantes[0]
   )
+}
+
+/** Mueve un elemento de una lista de la posición `from` a la posición `to`. */
+export function moverItem<T>(lista: T[], from: number, to: number): T[] {
+  if (from === to) return lista
+  const next = [...lista]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next
 }
 
 export function splitTags(raw: string): string[] {

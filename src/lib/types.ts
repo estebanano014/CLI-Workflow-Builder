@@ -76,12 +76,44 @@ export interface StoreData {
   schemaVersion: number
   rutas: Ruta[]
   recetas: Receta[]
+  historial: EjecucionRegistro[]
   ajustes: Ajustes
+}
+
+/** Registro de historial: solo metadatos, nunca comandos resueltos ni variables (RNF-009). */
+export interface EjecucionRegistro {
+  id: string
+  tipo: 'ruta' | 'receta'
+  refId: string | null
+  nombre: string
+  pasosHechos: number
+  pasosTotal: number
+  duracionMs: number
+  fecha: string
+}
+
+export interface ActividadDia {
+  fecha: string // YYYY-MM-DD
+  count: number
+}
+
+export interface Estadisticas {
+  totalEjecuciones: number
+  rutasEjecutadas: number
+  recetasCompletadas: number
+  pasosCompletados: number
+  diasActivos: number
+  racha: number
+  rachaMaxima: number
+  porDia: ActividadDia[]
+  ultimaFecha: string | null
 }
 
 export type Vista =
   | { nombre: 'dashboard' }
   | { nombre: 'biblioteca' }
+  | { nombre: 'progreso' }
+  | { nombre: 'terminal' }
   | { nombre: 'ruta-editor'; id?: string }
   | { nombre: 'ejecucion'; id: string }
   | { nombre: 'receta-editor'; id?: string }

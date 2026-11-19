@@ -10,13 +10,15 @@ import {
 } from 'react'
 import Swal from 'sweetalert2'
 import { getApi, ApiError } from '@/lib/api'
-import type { Ajustes, Ruta, Receta, Vista } from '@/lib/types'
+import type { Ajustes, EjecucionRegistro, Estadisticas, Ruta, Receta, Vista } from '@/lib/types'
 import { ajustesDefault } from '@/lib/utils'
 
 interface AppContextValue {
   rutas: Ruta[]
   recetas: Receta[]
   ajustes: Ajustes
+  historial: EjecucionRegistro[]
+  estadisticas: Estadisticas | null
   cargando: boolean
   error: string | null
   vista: Vista
@@ -29,6 +31,8 @@ interface AppContextValue {
   eliminarReceta: (id: string) => Promise<void>
   duplicarReceta: (id: string) => Promise<void>
   guardarAjustes: (ajustes: Ajustes) => Promise<void>
+  registrarEjecucion: (registro: Omit<EjecucionRegistro, 'id' | 'fecha'>) => Promise<void>
+  limpiarHistorial: () => Promise<void>
   // Sesión local
   comprobando: boolean
   autenticado: boolean
@@ -45,9 +49,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [rutas, setRutas] = useState<Ruta[]>([])
   const [recetas, setRecetas] = useState<Receta[]>([])
   const [ajustes, setAjustes] = useState<Ajustes>(ajustesDefault())
+  const [historial, setHistorial] = useState<EjecucionRegistro[]>([])
+  const [estadisticas, setEstadisticas] = useState<Estadisticas | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [vista, setVista] = useState<Vista>({ nombre: 'dashboard' })
+  const [vista, setVista] = useState<Vista>({ nombre: 'biblioteca' })
   const [comprobando, setComprobando] = useState(true)
   const [autenticado, setAutenticado] = useState(false)
   const [username, setUsername] = useState<string | null>(null)
@@ -60,14 +66,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setError(null)
     try {
       const api = await getApi()
-      const [resR, resRec, resA] = await Promise.all([
+      const [resR, resRec, resA, resH, resE] = await Promise.all([
         api.listRutas(),
         api.listRecetas(),
-        api.getAjustes()
+        api.getAjustes(),
+        api.listHistorial(),
+        api.getEstadisticas()
       ])
       setRutas(resR.rutas)
       setRecetas(resRec.recetas)
       setAjustes(resA.ajustes)
+      setHistorial(resH.historial)
+      setEstadisticas(resE.estadisticas)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -124,7 +134,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setRutas([])
     setRecetas([])
     setAjustes(ajustesDefault())
-    setVista({ nombre: 'dashboard' })
+    setHistorial([])
+    setEstadisticas(null)
+    setVista({ nombre: 'biblioteca' })
   }, [])
 
   const cambiarPassword = useCallback(async (current: string, nueva: string) => {
@@ -137,7 +149,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setRutas([])
     setRecetas([])
     setAjustes(ajustesDefault())
-    setVista({ nombre: 'dashboard' })
+    setHistorial([])
+    setEstadisticas(null)
+    setVista({ nombre: 'biblioteca' })
   }, [])
 
   const guardarRuta = useCallback(
@@ -225,11 +239,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAjustes(res.ajustes)
   }, [])
 
+  const registrarEjecucion = useCallback(
+    async (registro: Omit<EjecucionRegistro, 'id' | 'fecha'>) => {
+      const api = await getApi()
+      await api.addHistorial(registro)
+      // Refrescar historial y estadísticas sin recargar todo.
+      const [resH, resE] = await Promise.all([api.listHistorial(), api.getEstadisticas()])
+      setHistorial(resH.historial)
+      setEstadisticas(resE.estadisticas)
+    },
+    []
+  )
+
+  const limpiarHistorial = useCallback(async () => {
+    const api = await getApi()
+    await api.clearHistorial()
+    setHistorial([])
+    const resE = await api.getEstadisticas()
+    setEstadisticas(resE.estadisticas)
+  }, [])
+
   const value = useMemo<AppContextValue>(
     () => ({
       rutas,
       recetas,
       ajustes,
+      historial,
+      estadisticas,
       cargando,
       error,
       vista,
@@ -242,6 +278,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       eliminarReceta,
       duplicarReceta,
       guardarAjustes,
+      registrarEjecucion,
+      limpiarHistorial,
       comprobando,
       autenticado,
       username,
@@ -254,6 +292,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       rutas,
       recetas,
       ajustes,
+      historial,
+      estadisticas,
       cargando,
       error,
       vista,
@@ -266,6 +306,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       eliminarReceta,
       duplicarReceta,
       guardarAjustes,
+      registrarEjecucion,
+      limpiarHistorial,
       comprobando,
       autenticado,
       username,
