@@ -1,15 +1,115 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { randomBytes } from 'node:crypto'
 import { exec, spawn, type ChildProcess, type ExecException } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { OllamaClient, OllamaError } from './ollama'
+import { Assistant, type ConfirmFn } from './assistant'
 
 let pyProc: ChildProcess | null = null
 let port = 0
 let token = ''
 let mainWindow: BrowserWindow | null = null
+
+// ---------------------------------------------------------------------------
+// Asistente de IA local (Ollama)
+// ---------------------------------------------------------------------------
+
+interface AssistantConfig {
+  ollamaUrl: string
+  model: string
+  temperature: number
+  numCtx: number
+  workspaceDir: string
+  systemPrompt: string
+}
+
+const DEFAULT_SYSTEM_PROMPT = [
+  'Eres un asistente de IA local integrado en "CLI Workflow Builder", una aplicación de escritorio offline para Windows que gestiona flujos de comandos de consola.',
+  '',
+  'Reglas:',
+  '- Responde siempre en español.',
+  '- Usa las herramientas disponibles para ejecutar acciones reales: comandos de terminal, operaciones de git, lectura/edición de archivos y tests del proyecto.',
+  '- Cuando el usuario pida "haz los commits", primero revisa git_estado y git_diff, agrupa los cambios en commits lógicos, escribe mensajes claros en Conventional Commits (feat:, fix:, docs:, chore:, refactor:, test:, style:) y ejecútalos con git_add / git_commit.',
+  '- Sé prudente con acciones destructivas o irreversibles (reset --hard, push --force, borrar ramas, descartar cambios, sobrescribir archivos): el sistema pedirá confirmación automáticamente.',
+  '- Explica brevemente qué vas a hacer antes de ejecutar herramientas cuando sea relevante.',
+  '- Si una herramienta devuelve un error, léelo e intenta corregir el comando o la petición.'
+].join('\n')
+
+let assistantConfig: AssistantConfig | null = null
+let ollamaClient: OllamaClient | null = null
+let assistant: Assistant | null = null
+let assistantBusy = false
+const pendingConfirms = new Map<string, (ok: boolean) => void>()
+
+function configPath(): string {
+  return join(dataDir(), 'cliwf-ia-config.json')
+}
+
+function logPath(): string {
+  return join(dataDir(), 'cliwf-ia.log')
+}
+
+function defaultConfig(): AssistantConfig {
+  return {
+    ollamaUrl: process.env.CLI_WF_OLLAMA_URL || 'http://localhost:11434',
+    model: process.env.CLI_WF_OLLAMA_MODEL || 'qwen2.5:7b',
+    temperature: 0.7,
+    numCtx: 8192,
+    workspaceDir: app.getAppPath(),
+    systemPrompt: DEFAULT_SYSTEM_PROMPT
+  }
+}
+
+function loadConfig(): AssistantConfig {
+  const def = defaultConfig()
+  try {
+    const raw = JSON.parse(readFileSync(configPath(), 'utf8')) as Partial<AssistantConfig>
+    return { ...def, ...raw }
+  } catch {
+    return def
+  }
+}
+
+function saveConfig(cfg: AssistantConfig): void {
+  mkdirSync(dataDir(), { recursive: true })
+  writeFileSync(configPath(), JSON.stringify(cfg, null, 2), 'utf8')
+}
+
+function logAction(entry: { tool: string; args: unknown; result: string; confirmed?: boolean }): void {
+  try {
+    mkdirSync(dataDir(), { recursive: true })
+    appendFileSync(logPath(), `${JSON.stringify({ ts: new Date().toISOString(), ...entry })}\n`, 'utf8')
+  } catch {
+    /* el log no debe romper el flujo */
+  }
+}
+
+function rebuildAssistant(): void {
+  assistantConfig = loadConfig()
+  ollamaClient = new OllamaClient({
+    url: assistantConfig.ollamaUrl,
+    model: assistantConfig.model,
+    temperature: assistantConfig.temperature,
+    numCtx: assistantConfig.numCtx,
+    timeoutMs: 120000
+  })
+  assistant = new Assistant(ollamaClient, assistantConfig.systemPrompt, logAction)
+}
+
+function sanitizeConfig(patch: unknown): Partial<AssistantConfig> {
+  const out: Partial<AssistantConfig> = {}
+  if (!patch || typeof patch !== 'object') return out
+  const p = patch as Record<string, unknown>
+  if (typeof p.ollamaUrl === 'string' && p.ollamaUrl.trim()) out.ollamaUrl = p.ollamaUrl.trim()
+  if (typeof p.model === 'string' && p.model.trim()) out.model = p.model.trim()
+  if (typeof p.temperature === 'number') out.temperature = Math.min(2, Math.max(0, p.temperature))
+  if (typeof p.numCtx === 'number') out.numCtx = Math.min(131072, Math.max(512, Math.round(p.numCtx)))
+  if (typeof p.workspaceDir === 'string' && p.workspaceDir.trim()) out.workspaceDir = p.workspaceDir.trim()
+  return out
+}
 
 // Enlace profundo: cliwf://... abre (o enfoca) la app instalada.
 const PROTOCOL = 'cliwf'
@@ -199,6 +299,88 @@ ipcMain.handle('cliWF:ejecutar', async (_e, args: EjecutarArgs | undefined): Pro
 
 ipcMain.handle('cliWF:homeDir', () => homedir())
 
+// ---- Asistente de IA (Ollama) ----
+ipcMain.handle('cliWF:assistant-get-config', () => assistantConfig ?? loadConfig())
+
+ipcMain.handle('cliWF:assistant-set-config', (_e, patch: unknown) => {
+  assistantConfig = { ...(assistantConfig ?? loadConfig()), ...sanitizeConfig(patch) }
+  saveConfig(assistantConfig)
+  rebuildAssistant()
+  return assistantConfig
+})
+
+ipcMain.handle('cliWF:assistant-models', async () => {
+  if (!ollamaClient) rebuildAssistant()
+  return await ollamaClient!.listModels()
+})
+
+ipcMain.handle('cliWF:assistant-health', async () => {
+  if (!ollamaClient) rebuildAssistant()
+  try {
+    const models = await ollamaClient!.listModels()
+    return { online: true, models }
+  } catch (e) {
+    return { online: false, error: e instanceof Error ? e.message : String(e) }
+  }
+})
+
+ipcMain.handle('cliWF:assistant-reset', () => {
+  assistant?.reset()
+  return { ok: true }
+})
+
+ipcMain.handle('cliWF:assistant-confirm', (_e, payload: { id?: string; ok?: boolean } | undefined) => {
+  const id = payload?.id
+  if (id) {
+    const resolve = pendingConfirms.get(id)
+    if (resolve) {
+      pendingConfirms.delete(id)
+      resolve(payload?.ok === true)
+    }
+  }
+  return { ok: true }
+})
+
+ipcMain.handle('cliWF:assistant-chat', async (event, message: unknown) => {
+  if (!ollamaClient || !assistant) rebuildAssistant()
+  const text = typeof message === 'string' ? message : ''
+  if (!text.trim()) return { ok: false, error: 'Mensaje vacío.' }
+  if (assistantBusy) return { ok: false, error: 'El asistente ya está procesando otra petición.' }
+  assistantBusy = true
+  const cfg = assistantConfig as AssistantConfig
+  try {
+    const confirmFn: ConfirmFn = (req) =>
+      new Promise<boolean>((resolveFn) => {
+        const id = randomBytes(16).toString('hex')
+        pendingConfirms.set(id, resolveFn)
+        event.sender.send('ollama:confirm', {
+          id,
+          tool: req.tool,
+          title: req.title,
+          message: req.message
+        })
+      })
+    const finalText = await assistant!.chat(
+      text,
+      cfg.workspaceDir,
+      {
+        onChunk: (chunk) => event.sender.send('ollama:chunk', { text: chunk }),
+        onToolStart: (tool) => event.sender.send('ollama:status', { type: 'tool-start', tool }),
+        onToolEnd: (tool) => event.sender.send('ollama:status', { type: 'tool-end', tool })
+      },
+      confirmFn
+    )
+    event.sender.send('ollama:done', { text: finalText })
+    return { ok: true, text: finalText }
+  } catch (e) {
+    const errMsg = e instanceof OllamaError || e instanceof Error ? e.message : String(e)
+    event.sender.send('ollama:error', { message: errMsg })
+    return { ok: false, error: errMsg }
+  } finally {
+    assistantBusy = false
+  }
+})
+
 // Registrar el protocolo cliwf:// para que un enlace abra la app instalada.
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
@@ -223,6 +405,7 @@ if (!gotTheLock) {
     } catch (err) {
       console.error('No se pudo iniciar el núcleo Python:', err)
     }
+    rebuildAssistant()
     createWindow()
 
     app.on('activate', () => {
