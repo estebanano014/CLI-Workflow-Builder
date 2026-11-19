@@ -13,6 +13,13 @@ export function Sidebar() {
       <nav aria-label="Secciones">
         <button
           type="button"
+          className={`nav-link ${vista.nombre === 'biblioteca' ? 'active' : ''}`}
+          onClick={() => navegar({ nombre: 'biblioteca' })}
+        >
+          <i className="fa-solid fa-book" aria-hidden="true" /> Biblioteca
+        </button>
+        <button
+          type="button"
           className={`nav-link ${vista.nombre === 'dashboard' ? 'active' : ''}`}
           onClick={() => navegar({ nombre: 'dashboard' })}
         >
@@ -20,10 +27,17 @@ export function Sidebar() {
         </button>
         <button
           type="button"
-          className={`nav-link ${vista.nombre === 'biblioteca' ? 'active' : ''}`}
-          onClick={() => navegar({ nombre: 'biblioteca' })}
+          className={`nav-link ${vista.nombre === 'progreso' ? 'active' : ''}`}
+          onClick={() => navegar({ nombre: 'progreso' })}
         >
-          <i className="fa-solid fa-book" aria-hidden="true" /> Biblioteca
+          <i className="fa-solid fa-chart-line" aria-hidden="true" /> Progreso
+        </button>
+        <button
+          type="button"
+          className={`nav-link ${vista.nombre === 'terminal' ? 'active' : ''}`}
+          onClick={() => navegar({ nombre: 'terminal' })}
+        >
+          <i className="fa-solid fa-terminal" aria-hidden="true" /> Terminal
         </button>
         <button
           type="button"
