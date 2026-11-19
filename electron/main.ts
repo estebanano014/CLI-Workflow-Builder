@@ -1,8 +1,9 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { randomBytes } from 'node:crypto'
-import { spawn, type ChildProcess } from 'node:child_process'
+import { exec, spawn, type ChildProcess, type ExecException } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { createServer } from 'node:net'
+import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 let pyProc: ChildProcess | null = null
@@ -141,6 +142,62 @@ function createWindow(): void {
 }
 
 ipcMain.handle('cliWF:connection', () => ({ port, token }))
+
+interface ResultadoEjecucion {
+  stdout: string
+  stderr: string
+  code: number | null
+  timedOut: boolean
+  error: string | null
+}
+
+interface EjecutarArgs {
+  comando: string
+  cwd?: string
+  timeoutMs?: number
+}
+
+function resultadoVacio(error: string): ResultadoEjecucion {
+  return { stdout: '', stderr: '', code: null, timedOut: false, error }
+}
+
+// Terminal integrado (Fase 5): ejecuta un comando real en una shell del sistema.
+ipcMain.handle('cliWF:ejecutar', async (_e, args: EjecutarArgs | undefined): Promise<ResultadoEjecucion> => {
+  const comando = typeof args?.comando === 'string' ? args.comando : ''
+  if (!comando.trim()) return resultadoVacio('Comando vacío')
+  if (comando.length > 20000) return resultadoVacio('Comando demasiado largo')
+
+  let cwd = typeof args?.cwd === 'string' && args.cwd.trim() ? args.cwd.trim() : homedir()
+  if (cwd.includes('\0')) return resultadoVacio('Directorio de trabajo no válido')
+
+  const timeoutMs =
+    typeof args?.timeoutMs === 'number' ? Math.min(Math.max(args.timeoutMs, 1000), 120000) : 30000
+  const shellPath = process.platform === 'win32' ? process.env.ComSpec || 'cmd.exe' : '/bin/sh'
+
+  return new Promise<ResultadoEjecucion>((resolve) => {
+    exec(
+      comando,
+      { cwd, timeout: timeoutMs, shell: shellPath, maxBuffer: 1024 * 1024, windowsHide: true },
+      (error, stdout, stderr) => {
+        if (error) {
+          const err = error as ExecException
+          const timedOut = err.killed === true || err.signal != null
+          resolve({
+            stdout: stdout ?? '',
+            stderr: stderr ?? '',
+            code: err.code ?? null,
+            timedOut,
+            error: err.message ?? String(error)
+          })
+        } else {
+          resolve({ stdout: stdout ?? '', stderr: stderr ?? '', code: 0, timedOut: false, error: null })
+        }
+      }
+    )
+  })
+})
+
+ipcMain.handle('cliWF:homeDir', () => homedir())
 
 // Registrar el protocolo cliwf:// para que un enlace abra la app instalada.
 if (process.defaultApp) {
