@@ -1,7 +1,7 @@
 import type { Ajustes, Paso, Ruta, Receta, SO, Variante } from '@/lib/types'
 
 /** Versión mostrada en la interfaz (se mantiene en sincronía con package.json). */
-export const APP_VERSION = '0.0.3'
+export const APP_VERSION = '0.0.4'
 
 export function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
