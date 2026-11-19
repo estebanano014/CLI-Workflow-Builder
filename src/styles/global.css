@@ -1182,3 +1182,124 @@ input[type='search'] {
 .terminal-input-row input {
   flex: 1;
 }
+
+/* ---------- Asistente de IA (Ollama) ---------- */
+
+.assistant {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.assistant-header .row {
+  gap: var(--space-3);
+}
+
+.assistant-chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.assistant-messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 300px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+
+.assistant-empty {
+  margin: auto;
+  text-align: center;
+  font-size: var(--text-sm);
+  max-width: 480px;
+}
+
+.assistant-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.assistant-msg.usuario {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.assistant-msg.asistente {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.assistant-msg.error {
+  align-self: flex-start;
+}
+
+.assistant-msg.sistema {
+  align-self: center;
+}
+
+.assistant-rol {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.assistant-bubble {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--border-subtle);
+  color: var(--color-text);
+}
+
+.assistant-msg.usuario .assistant-bubble {
+  background: var(--primary-soft);
+  border-color: var(--color-primary);
+}
+
+.assistant-msg.error .assistant-bubble {
+  background: color-mix(in srgb, var(--color-error) 14%, transparent);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.assistant-tool {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.assistant-tool code {
+  font-family: var(--font-mono);
+  color: var(--color-primary);
+}
+
+.assistant-cursor {
+  color: var(--color-primary);
+  animation: assistant-blink 1s steps(2, start) infinite;
+}
+
+@keyframes assistant-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.assistant-input-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.assistant-input-row input {
+  flex: 1;
+}

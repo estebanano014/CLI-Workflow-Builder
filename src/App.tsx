@@ -6,6 +6,7 @@ import Dashboard from '@/pages/Dashboard'
 import Biblioteca from '@/pages/Biblioteca'
 import Progreso from '@/pages/Progreso'
 import Terminal from '@/pages/Terminal'
+import Asistente from '@/pages/Asistente'
 import RutaEditor from '@/pages/RutaEditor'
 import Ejecucion from '@/pages/Ejecucion'
 import RecetaEditor from '@/pages/RecetaEditor'
@@ -25,6 +26,8 @@ function tituloDe(vista: Vista): string {
       return 'Progreso'
     case 'terminal':
       return 'Terminal'
+    case 'asistente':
+      return 'Asistente de IA'
     case 'ruta-editor':
       return vista.id ? 'Editar ruta' : 'Nueva ruta'
     case 'ejecucion':
@@ -66,6 +69,9 @@ function Shell() {
       break
     case 'terminal':
       contenido = <Terminal />
+      break
+    case 'asistente':
+      contenido = <Asistente />
       break
     case 'ruta-editor':
       contenido = <RutaEditor rutaId={vista.id} />

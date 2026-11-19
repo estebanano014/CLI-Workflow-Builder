@@ -41,6 +41,13 @@ export function Sidebar() {
         </button>
         <button
           type="button"
+          className={`nav-link ${vista.nombre === 'asistente' ? 'active' : ''}`}
+          onClick={() => navegar({ nombre: 'asistente' })}
+        >
+          <i className="fa-solid fa-robot" aria-hidden="true" /> Asistente
+        </button>
+        <button
+          type="button"
           className={`nav-link ${vista.nombre === 'ajustes' ? 'active' : ''}`}
           onClick={() => navegar({ nombre: 'ajustes' })}
         >

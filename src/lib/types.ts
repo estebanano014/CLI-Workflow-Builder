@@ -114,6 +114,7 @@ export type Vista =
   | { nombre: 'biblioteca' }
   | { nombre: 'progreso' }
   | { nombre: 'terminal' }
+  | { nombre: 'asistente' }
   | { nombre: 'ruta-editor'; id?: string }
   | { nombre: 'ejecucion'; id: string }
   | { nombre: 'receta-editor'; id?: string }
