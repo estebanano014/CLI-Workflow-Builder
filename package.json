@@ -1,6 +1,6 @@
 {
   "name": "cli-workflow-builder",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Gestor visual de flujos de trabajo (offline para Windows): recuerda, ordena y practica comandos de consola y descompone problemas lógicos.",
   "author": "CLI Workflow Builder",
   "license": "MIT",
@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test:python": "py -m unittest discover -s python-core/tests -t python-core -v",
     "fetch:python": "powershell -ExecutionPolicy Bypass -File scripts/fetch-python.ps1",
+    "fetch:ollama": "powershell -ExecutionPolicy Bypass -File scripts/fetch-ollama.ps1",
     "dist:dir": "electron-vite build && electron-builder --dir",
     "dist:win": "electron-vite build && electron-builder --win"
   },
