@@ -104,6 +104,11 @@ uno ya en marcha. Solo necesitas:
    la tienes: la app detecta si hay un servidor en `localhost:11434` y, si existe,
    lo usa en lugar del propio.
 
+> **Tamaño:** el Ollama empaquetado viene en **modo CPU** (instalador de ~120 MB,
+> sin librerías de GPU NVIDIA). El modelo funciona en CPU; si tienes una gráfica
+> NVIDIA y quieres aceleración por GPU, regenera el bundle con
+> `npm run fetch:ollama -- -KeepCuda` antes de `npm run dist:win`.
+
 ### Configuración
 
 Abre la sección **Asistente** (menú lateral) → **Configuración**. Ahí puedes

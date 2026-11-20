@@ -19,6 +19,8 @@ El formato se basa en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y
 
 ### Cambiado
 - Versión de la aplicación a `0.0.5` (`package.json`, `package-lock.json` y `APP_VERSION`).
+- Ollama embebido en **modo CPU por defecto** (instalador de ~120 MB, sin librerías
+  CUDA). Para conservar aceleración NVIDIA: `npm run fetch:ollama -- -KeepCuda`.
 
 ## [0.0.4] - 2026-11-19
 

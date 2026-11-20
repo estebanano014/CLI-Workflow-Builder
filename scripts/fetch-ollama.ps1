@@ -1,5 +1,10 @@
 # Descarga y extrae el binario portable de Ollama para empaquetarlo con la app.
 # Equivalente a `scripts/fetch-python.ps1` pero para Ollama.
+#
+# Por defecto deja solo la parte CPU (instalador ~120 MB). Si necesitas
+# aceleración por GPU NVIDIA, ejecuta con el switch: -KeepCuda
+param([switch]$KeepCuda)
+
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
@@ -20,4 +25,10 @@ New-Item -ItemType Directory -Force -Path $dest | Out-Null
 tar -xf $zip -C $dest
 if ($LASTEXITCODE -ne 0) { throw "No se pudo extraer $zip" }
 
-Write-Host "Ollama listo en $dest"
+if (-not $KeepCuda) {
+  Write-Host "Quitando librerias CUDA (modo CPU) para reducir el instalador..."
+  Remove-Item (Join-Path $dest 'lib\ollama\cuda_v12') -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-Item (Join-Path $dest 'lib\ollama\cuda_v13') -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "Ollama listo en $dest (KeepCuda=$KeepCuda)"

@@ -210,7 +210,9 @@ para interpretar lenguaje natural y ejecutar acciones reales. Todo vive en el
   hay un servidor en `127.0.0.1:11434`; si no, lanza `ollama.exe serve` (con
   `OLLAMA_HOST` fijado a loopback) y espera a que responda. Al cerrar la app se
   detiene el proceso embebido. Los modelos se comparten con la instalación del
-  sistema (`~/.ollama/models`), así que no hay que re-descargarlos.
+  sistema (`~/.ollama/models`), así que no hay que re-descargarlos. Por defecto se
+  empaqueta **solo en modo CPU** (se eliminan `cuda_v12`/`cuda_v13`); para conservar
+  la aceleración NVIDIA se usa `npm run fetch:ollama -- -KeepCuda`.
 - **Historial de conversaciones:** las conversaciones se persisten por usuario en
   `cliwf-ia-conversaciones.json` (id, usuario, título, mensajes y fechas). El
   orquestador expone `snapshot()`/`restore()` y los handlers IPC
